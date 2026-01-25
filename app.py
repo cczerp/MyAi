@@ -12,6 +12,7 @@ CORS(app)
 # Environment variables
 NEBIUS_API_KEY = os.environ.get('NEBIUS_API_KEY')
 NEBIUS_API_URL = os.environ.get('NEBIUS_API_URL', 'https://api.studio.nebius.ai/v1/chat/completions')
+OLLAMA_API_URL = os.environ.get('OLLAMA_API_URL', 'https://llm.windowwanker.com/v1/chat/completions')
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
 GITHUB_EMAIL = os.environ.get('GITHUB_EMAIL', 'your-email@example.com')
 GITHUB_NAME = os.environ.get('GITHUB_NAME', 'Your Name')
@@ -19,8 +20,20 @@ GITHUB_NAME = os.environ.get('GITHUB_NAME', 'Your Name')
 # Initialize GitHub client
 github_client = Github(GITHUB_TOKEN) if GITHUB_TOKEN else None
 
-# Available models (first 24 from Nebius) with correct IDs from their API docs
-MODELS = [
+# Local Ollama models
+LOCAL_MODELS = [
+    {"id": "local/llama3.1:8b", "name": "Llama 3.1 8B", "provider": "Local", "ollama_id": "llama3.1:8b"},
+    {"id": "local/mistral:7b-instruct", "name": "Mistral 7B Instruct", "provider": "Local", "ollama_id": "mistral:7b-instruct"},
+    {"id": "local/qwen2.5:latest", "name": "Qwen 2.5", "provider": "Local", "ollama_id": "qwen2.5:latest"},
+    {"id": "local/qwen2.5-coder:7b", "name": "Qwen 2.5 Coder 7B", "provider": "Local", "ollama_id": "qwen2.5-coder:7b"},
+    {"id": "local/deepseek-coder:6.7b", "name": "DeepSeek Coder 6.7B", "provider": "Local", "ollama_id": "deepseek-coder:6.7b"},
+    {"id": "local/nous-hermes2:latest", "name": "Nous Hermes 2", "provider": "Local", "ollama_id": "nous-hermes2:latest"},
+    {"id": "local/gemma-3-12b-abliterated", "name": "Gemma 3 12B Abliterated", "provider": "Local", "ollama_id": "hf.co/mlabonne/gemma-3-12b-it-abliterated-GGUF:Q4_K_M"},
+    {"id": "local/bakllava:latest", "name": "BakLLaVA (Vision)", "provider": "Local", "ollama_id": "bakllava:latest"},
+]
+
+# Available models (Nebius cloud) with correct IDs from their API docs
+NEBIUS_MODELS = [
     {"id": "MiniMaxAI/MiniMax-M2.1", "name": "MiniMax-M2.1", "provider": "Minimax"},
     {"id": "zai-org/GLM-4.7-FP8", "name": "GLM-4.7", "provider": "Z.ai"},
     {"id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek-V3.2", "provider": "DeepSeek"},
@@ -47,13 +60,27 @@ MODELS = [
     {"id": "nvidia/Llama-3.1-Nemotron-Ultra-253B-v1", "name": "Llama-3.1-Nemotron-Ultra-253B-v1", "provider": "NVIDIA"}
 ]
 
+# Combine all models - Local first, then Nebius
+ALL_MODELS = LOCAL_MODELS + NEBIUS_MODELS
+
+def is_local_model(model_id):
+    """Check if a model ID is a local Ollama model"""
+    return model_id.startswith('local/')
+
+def get_ollama_model_id(model_id):
+    """Get the actual Ollama model ID from our internal ID"""
+    for model in LOCAL_MODELS:
+        if model['id'] == model_id:
+            return model.get('ollama_id', model_id.replace('local/', ''))
+    return model_id.replace('local/', '')
+
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
 
 @app.route('/api/models', methods=['GET'])
 def get_models():
-    return jsonify({"models": MODELS})
+    return jsonify({"models": ALL_MODELS})
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -66,10 +93,24 @@ def chat():
         return jsonify({"error": "Model and messages are required"}), 400
 
     try:
-        headers = {
-            'Authorization': f'Bearer {NEBIUS_API_KEY}',
-            'Content-Type': 'application/json'
-        }
+        # Determine if this is a local or cloud model
+        use_local = is_local_model(model)
+
+        if use_local:
+            # Local Ollama model
+            api_url = OLLAMA_API_URL
+            actual_model = get_ollama_model_id(model)
+            headers = {
+                'Content-Type': 'application/json'
+            }
+        else:
+            # Nebius cloud model
+            api_url = NEBIUS_API_URL
+            actual_model = model
+            headers = {
+                'Authorization': f'Bearer {NEBIUS_API_KEY}',
+                'Content-Type': 'application/json'
+            }
 
         # Add system prompt for efficient tool usage when repo is connected
         if repo_context:
@@ -185,17 +226,20 @@ TOOL TIPS:
             ]
         
         payload = {
-            'model': model,
+            'model': actual_model,
             'messages': messages,
             'temperature': data.get('temperature', 0.7),
             'max_tokens': data.get('max_tokens', 4000)
         }
-        
+
+        # Add tools if available (both local and cloud models can use tools)
         if tools:
             payload['tools'] = tools
             payload['tool_choice'] = 'auto'
-        
-        response = requests.post(NEBIUS_API_URL, headers=headers, json=payload, timeout=120)
+
+        # Use longer timeout for local models (they can be slower)
+        timeout = 300 if use_local else 120
+        response = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
         response.raise_for_status()
         
         result = response.json()
