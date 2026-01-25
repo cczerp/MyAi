@@ -61,16 +61,37 @@ def chat():
     model = data.get('model')
     messages = data.get('messages', [])
     repo_context = data.get('repo_context')  # {repo, branch}
-    
+
     if not model or not messages:
         return jsonify({"error": "Model and messages are required"}), 400
-    
+
     try:
         headers = {
             'Authorization': f'Bearer {NEBIUS_API_KEY}',
             'Content-Type': 'application/json'
         }
-        
+
+        # Add system prompt for efficient tool usage when repo is connected
+        if repo_context:
+            system_prompt = """You are a helpful coding assistant with access to a GitHub repository. You can read and edit files.
+
+EFFICIENCY GUIDELINES - Follow these to avoid running out of steps:
+1. READ files only ONCE. Don't re-read files you've already seen.
+2. Use edit_file with replace_all=true for bulk changes (e.g., changing all occurrences of a color).
+3. PLAN your edits first, then execute them efficiently.
+4. For color scheme changes: identify all unique colors, then use edit_file with replace_all=true for each color.
+5. Combine related changes - don't make separate calls for the same type of change.
+6. You have a maximum of 25 tool calls, so be efficient!
+
+TOOL TIPS:
+- edit_file: Best for targeted changes. Use old_text/new_text with replace_all=true for global find-replace.
+- write_file: Only use for new files or complete rewrites. Avoid for small edits.
+- list_files: Use to discover available files before reading."""
+
+            # Prepend system message if not already present
+            if not messages or messages[0].get('role') != 'system':
+                messages = [{'role': 'system', 'content': system_prompt}] + messages
+
         # Define tools for GitHub file operations
         tools = []
         if repo_context:
