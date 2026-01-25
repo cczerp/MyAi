@@ -141,7 +141,7 @@ def chat():
             payload['tools'] = tools
             payload['tool_choice'] = 'auto'
         
-        response = requests.post(NEBIUS_API_URL, headers=headers, json=payload, timeout=60)
+        response = requests.post(NEBIUS_API_URL, headers=headers, json=payload, timeout=120)
         response.raise_for_status()
         
         result = response.json()
