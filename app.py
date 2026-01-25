@@ -47,6 +47,32 @@ MODELS = [
     {"id": "nvidia/Llama-3.1-Nemotron-Ultra-253B-v1", "name": "Llama-3.1-Nemotron-Ultra-253B-v1", "provider": "NVIDIA"}
 ]
 
+def call_local_llm(model, messages):
+    prompt = "\n".join([m["content"] for m in messages if m["role"] == "user"])
+
+    r = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": model,
+            "prompt": prompt,
+            "stream": False
+        },
+        timeout=120
+    )
+    r.raise_for_status()
+    data = r.json()
+
+    return {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": data.get("response", "")
+                }
+            }
+        ]
+    }
+
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
@@ -61,6 +87,10 @@ def chat():
     model = data.get('model')
     messages = data.get('messages', [])
     repo_context = data.get('repo_context')  # {repo, branch}
+
+    if provider == "local":
+        return jsonify(call_local_llm(model, messages))
+
     
     if not model or not messages:
         return jsonify({"error": "Model and messages are required"}), 400
@@ -553,6 +583,6 @@ def get_branches():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5000, debug=False)
+
