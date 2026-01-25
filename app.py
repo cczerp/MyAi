@@ -96,7 +96,7 @@ def chat():
                     "type": "function",
                     "function": {
                         "name": "write_file",
-                        "description": f"Write or update a file in the repository {repo_context['repo']} on branch {repo_context['branch']}. Changes are automatically committed.",
+                        "description": f"Write or update a file in the repository {repo_context['repo']} on branch {repo_context['branch']}. Changes are automatically committed. Use this for creating new files or complete rewrites.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -114,6 +114,39 @@ def chat():
                                 }
                             },
                             "required": ["file_path", "content", "commit_message"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "edit_file",
+                        "description": f"Edit a file by replacing specific text. Use this for making targeted changes to existing files - much more efficient than rewriting the whole file. You can call this multiple times to make multiple changes.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "file_path": {
+                                    "type": "string",
+                                    "description": "The path to the file in the repository"
+                                },
+                                "old_text": {
+                                    "type": "string",
+                                    "description": "The exact text to find and replace (must match exactly)"
+                                },
+                                "new_text": {
+                                    "type": "string",
+                                    "description": "The new text to replace it with"
+                                },
+                                "replace_all": {
+                                    "type": "boolean",
+                                    "description": "If true, replace ALL occurrences. If false (default), replace only the first occurrence."
+                                },
+                                "commit_message": {
+                                    "type": "string",
+                                    "description": "Commit message describing the change"
+                                }
+                            },
+                            "required": ["file_path", "old_text", "new_text", "commit_message"]
                         }
                     }
                 },
@@ -236,7 +269,63 @@ def execute_tool():
                 "commit": result['commit'].sha,
                 "message": f"Committed changes to {file_path}"
             })
-        
+
+        elif tool_name == 'edit_file':
+            file_path = arguments.get('file_path')
+            old_text = arguments.get('old_text')
+            new_text = arguments.get('new_text')
+            replace_all = arguments.get('replace_all', False)
+            commit_message = arguments.get('commit_message', f'Edit {file_path}')
+
+            if not all([file_path, old_text is not None, new_text is not None, repo_context]):
+                return jsonify({"error": "file_path, old_text, new_text, and repo_context required"}), 400
+
+            repo = github_client.get_repo(repo_context['repo'])
+            branch = repo_context['branch']
+
+            # Get existing file
+            try:
+                file = repo.get_contents(file_path, ref=branch)
+                current_content = base64.b64decode(file.content).decode('utf-8')
+            except Exception as e:
+                return jsonify({"error": f"Could not read file: {str(e)}"}), 400
+
+            # Check if old_text exists in the file
+            if old_text not in current_content:
+                return jsonify({
+                    "success": False,
+                    "error": f"Could not find the specified text in {file_path}. Make sure old_text matches exactly."
+                })
+
+            # Count occurrences
+            count = current_content.count(old_text)
+
+            # Replace the text
+            if replace_all:
+                new_content = current_content.replace(old_text, new_text)
+            else:
+                new_content = current_content.replace(old_text, new_text, 1)
+
+            # Update the file
+            result = repo.update_file(
+                path=file_path,
+                message=commit_message,
+                content=new_content,
+                sha=file.sha,
+                branch=branch,
+                committer={
+                    'name': GITHUB_NAME,
+                    'email': GITHUB_EMAIL
+                }
+            )
+
+            replaced_msg = f"all {count} occurrences" if replace_all else "1 occurrence"
+            return jsonify({
+                "success": True,
+                "commit": result['commit'].sha,
+                "message": f"Edited {file_path}: replaced {replaced_msg} successfully"
+            })
+
         elif tool_name == 'list_files':
             if not repo_context:
                 return jsonify({"error": "repo_context required"}), 400
