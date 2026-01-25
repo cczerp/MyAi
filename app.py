@@ -145,11 +145,16 @@ def chat():
         response.raise_for_status()
         
         result = response.json()
-        
+
         # Ensure the response has the expected OpenAI format
-        if 'choices' not in result:
-            return jsonify({"error": f"Unexpected API response format: {result}"}), 500
-        
+        if 'choices' not in result or not result['choices']:
+            return jsonify({"error": f"Unexpected API response format - no choices: {result}"}), 500
+
+        # Validate that the first choice has a message
+        first_choice = result['choices'][0]
+        if 'message' not in first_choice:
+            return jsonify({"error": f"Unexpected API response format - no message in choice: {first_choice}"}), 500
+
         return jsonify(result)
     
     except requests.exceptions.HTTPError as e:
