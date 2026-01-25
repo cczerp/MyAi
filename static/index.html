@@ -389,15 +389,41 @@
                 selector1.innerHTML = '<option value="">Select a model...</option>';
                 selector2.innerHTML = '<option value="">Select a model...</option>';
 
-                models.forEach(model => {
-                    const option1 = document.createElement('option');
-                    option1.value = model.id;
-                    option1.textContent = `${model.name} (${model.provider})`;
-                    selector1.appendChild(option1);
+                // Group models by tier
+                const freeModels = models.filter(m => m.tier === 'free');
+                const paidModels = models.filter(m => m.tier === 'paid');
 
-                    const option2 = option1.cloneNode(true);
-                    selector2.appendChild(option2);
-                });
+                // Create optgroups for better organization
+                const createModelOptions = (selector) => {
+                    // Free models group
+                    if (freeModels.length > 0) {
+                        const freeGroup = document.createElement('optgroup');
+                        freeGroup.label = '🆓 Free (Local LLMs)';
+                        freeModels.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model.id;
+                            option.textContent = model.name;
+                            freeGroup.appendChild(option);
+                        });
+                        selector.appendChild(freeGroup);
+                    }
+
+                    // Paid models group
+                    if (paidModels.length > 0) {
+                        const paidGroup = document.createElement('optgroup');
+                        paidGroup.label = '💰 Paid (Nebius - per token)';
+                        paidModels.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model.id;
+                            option.textContent = `${model.name} (${model.provider})`;
+                            paidGroup.appendChild(option);
+                        });
+                        selector.appendChild(paidGroup);
+                    }
+                };
+
+                createModelOptions(selector1);
+                createModelOptions(selector2);
             } catch (error) {
                 console.error('Error loading models:', error);
             }
