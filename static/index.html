@@ -564,12 +564,18 @@
         }
 
         // Call LLM and handle tool calls automatically
-        async function callLLMWithTools(chatId, model, messages, maxIterations = 10) {
+        async function callLLMWithTools(chatId, model, messages, maxIterations = 25) {
             let iterations = 0;
-            
+
             while (iterations < maxIterations) {
                 iterations++;
-                
+
+                // Update loading message with iteration count
+                const loadingDiv = document.getElementById(`loading${chatId}`);
+                if (loadingDiv) {
+                    loadingDiv.textContent = `Processing... (step ${iterations}/${maxIterations})`;
+                }
+
                 const repo = activeRepo[chatId];
                 const payload = {
                     model: model,
@@ -650,7 +656,10 @@
                         // Update loading message
                         const loadingDiv = document.getElementById(`loading${chatId}`);
                         if (loadingDiv) {
-                            loadingDiv.textContent = `Executing: ${toolName}(${Object.keys(toolArgs).join(', ')})...`;
+                            const argsPreview = toolName === 'edit_file' ?
+                                (toolArgs.old_text?.substring(0, 30) + '...' || '') :
+                                Object.keys(toolArgs).join(', ');
+                            loadingDiv.textContent = `Step ${iterations}: ${toolName}(${argsPreview})`;
                         }
                         
                         // Execute the tool
