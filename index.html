@@ -598,8 +598,21 @@
                     return;
                 }
 
+                // Validate response structure
+                if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+                    document.getElementById(`loading${chatId}`)?.remove();
+                    addMessageToUI(chatId, 'assistant', 'Error: Invalid response from API - no choices returned');
+                    return;
+                }
+
                 const choice = data.choices[0];
-                const message = choice.message;
+                const message = choice?.message;
+
+                if (!message) {
+                    document.getElementById(`loading${chatId}`)?.remove();
+                    addMessageToUI(chatId, 'assistant', 'Error: Invalid response from API - no message in response');
+                    return;
+                }
                 
                 // Check if LLM wants to call a tool
                 if (message.tool_calls && message.tool_calls.length > 0) {
@@ -635,8 +648,8 @@
                 
                 // No more tool calls - we have the final response
                 document.getElementById(`loading${chatId}`)?.remove();
-                
-                const assistantMessage = message.content;
+
+                const assistantMessage = message.content || '(No response content)';
                 addMessageToUI(chatId, 'assistant', assistantMessage);
 
                 // Update chat history (add original user message and final assistant response)
