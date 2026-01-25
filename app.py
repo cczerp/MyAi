@@ -19,31 +19,31 @@ GITHUB_NAME = os.environ.get('GITHUB_NAME', 'Your Name')
 # Initialize GitHub client
 github_client = Github(GITHUB_TOKEN) if GITHUB_TOKEN else None
 
-# Available models (first 24 from Nebius)
+# Available models (first 24 from Nebius) with correct IDs from their API docs
 MODELS = [
-    {"id": "minimax/MiniMax-M2.1", "name": "MiniMax-M2.1", "provider": "Minimax"},
-    {"id": "z.ai/GLM-4.7", "name": "GLM-4.7", "provider": "Z.ai"},
+    {"id": "MiniMaxAI/MiniMax-M2.1", "name": "MiniMax-M2.1", "provider": "Minimax"},
+    {"id": "zai-org/GLM-4.7-FP8", "name": "GLM-4.7", "provider": "Z.ai"},
     {"id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek-V3.2", "provider": "DeepSeek"},
     {"id": "openai/gpt-oss-120b", "name": "gpt-oss-120b", "provider": "OpenAI"},
-    {"id": "moonshot-ai/Kimi-K2-Instruct", "name": "Kimi-K2-Instruct", "provider": "Moonshot AI"},
-    {"id": "moonshot-ai/Kimi-K2-Thinking", "name": "Kimi-K2-Thinking", "provider": "Moonshot AI"},
-    {"id": "qwen/Qwen3-Coder-480B-A35B-Instruct", "name": "Qwen3-Coder-480B-A35B-Instruct", "provider": "Qwen"},
-    {"id": "nous-research/Hermes-4-405B", "name": "Hermes-4-405B", "provider": "NousResearch"},
-    {"id": "nous-research/Hermes-4-70B", "name": "Hermes-4-70B", "provider": "NousResearch"},
+    {"id": "moonshotai/Kimi-K2-Instruct", "name": "Kimi-K2-Instruct", "provider": "Moonshot AI"},
+    {"id": "moonshotai/Kimi-K2-Thinking", "name": "Kimi-K2-Thinking", "provider": "Moonshot AI"},
+    {"id": "Qwen/Qwen3-Coder-480B-A35B-Instruct", "name": "Qwen3-Coder-480B-A35B-Instruct", "provider": "Qwen"},
+    {"id": "NousResearch/Hermes-4-405B", "name": "Hermes-4-405B", "provider": "NousResearch"},
+    {"id": "NousResearch/Hermes-4-70B", "name": "Hermes-4-70B", "provider": "NousResearch"},
     {"id": "openai/gpt-oss-20b", "name": "gpt-oss-20b", "provider": "OpenAI"},
-    {"id": "z.ai/GLM-4.5", "name": "GLM-4.5", "provider": "Z.ai"},
-    {"id": "z.ai/GLM-4.5-Air", "name": "GLM-4.5-Air", "provider": "Z.ai"},
-    {"id": "prime-intellect/INTELLECT-3", "name": "INTELLECT-3", "provider": "Prime Intellect"},
-    {"id": "qwen/Qwen3-Next-80B-A3B-Thinking", "name": "Qwen3-Next-80B-A3B-Thinking", "provider": "Qwen"},
+    {"id": "zai-org/GLM-4.5", "name": "GLM-4.5", "provider": "Z.ai"},
+    {"id": "zai-org/GLM-4.5-Air", "name": "GLM-4.5-Air", "provider": "Z.ai"},
+    {"id": "PrimeIntellect/INTELLECT-3", "name": "INTELLECT-3", "provider": "Prime Intellect"},
+    {"id": "Qwen/Qwen3-Next-80B-A3B-Thinking", "name": "Qwen3-Next-80B-A3B-Thinking", "provider": "Qwen"},
     {"id": "deepseek-ai/DeepSeek-R1-0528", "name": "DeepSeek-R1-0528", "provider": "DeepSeek"},
     {"id": "deepseek-ai/DeepSeek-R1-0528-fast", "name": "DeepSeek-R1-0528 (Fast)", "provider": "DeepSeek"},
-    {"id": "qwen/Qwen3-235B-A22B-Thinking-2507", "name": "Qwen3-235B-A22B-Thinking-2507", "provider": "Qwen"},
-    {"id": "qwen/Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3-235B-A22B-Instruct-2507", "provider": "Qwen"},
-    {"id": "qwen/Qwen3-30B-A3B-Thinking-2507", "name": "Qwen3-30B-A3B-Thinking-2507", "provider": "Qwen"},
-    {"id": "qwen/Qwen3-30B-A3B-Instruct-2507", "name": "Qwen3-30B-A3B-Instruct-2507", "provider": "Qwen"},
-    {"id": "qwen/Qwen3-Coder-30B-A3B-Instruct", "name": "Qwen3-Coder-30B-A3B-Instruct", "provider": "Qwen"},
-    {"id": "qwen/Qwen3-32B", "name": "Qwen3-32B", "provider": "Qwen"},
-    {"id": "qwen/Qwen3-32B-fast", "name": "Qwen3-32B (Fast)", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-235B-A22B-Thinking-2507", "name": "Qwen3-235B-A22B-Thinking-2507", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3-235B-A22B-Instruct-2507", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-30B-A3B-Thinking-2507", "name": "Qwen3-30B-A3B-Thinking-2507", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-30B-A3B-Instruct-2507", "name": "Qwen3-30B-A3B-Instruct-2507", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "name": "Qwen3-Coder-30B-A3B-Instruct", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-32B", "name": "Qwen3-32B", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-32B-fast", "name": "Qwen3-32B (Fast)", "provider": "Qwen"},
     {"id": "nvidia/Llama-3.1-Nemotron-Ultra-253B-v1", "name": "Llama-3.1-Nemotron-Ultra-253B-v1", "provider": "NVIDIA"}
 ]
 
