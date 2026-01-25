@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: #2a2a2a;
+            border-right: 1px solid #404040;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #404040;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: #0052a3;
+        }
+
+        .btn-secondary {
+            background: #404040;
+        }
+
+        .btn-secondary:hover {
+            background: #505050;
+        }
+
+        /* GitHub Section */
+        .github-section {
+            padding: 20px;
+            border-bottom: 1px solid #404040;
+        }
+
+        .github-section h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #888;
+        }
+
+        .repo-list, .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .repo-item, .file-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .repo-item:hover, .file-item:hover {
+            background: #404040;
+        }
+
+        .repo-item.selected, .file-item.selected {
+            background: #0066cc;
+        }
+
+        .branch-selector {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #404040;
+        }
+
+        .chat-panel:last-child {
+            border-right: none;
+        }
+
+        .chat-panel.hidden {
+            display: none;
+        }
+
+        /* Chat Header */
+        .chat-header {
+            padding: 15px 20px;
+            background: #2a2a2a;
+            border-bottom: 1px solid #404040;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .model-selector {
+            padding: 8px 12px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 250px;
+        }
+
+        .close-chat {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* Messages */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-header {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .message-content {
+            background: #2a2a2a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .message.user .message-content {
+            background: #0066cc;
+        }
+
+        .message.assistant .message-content {
+            background: #2a2a2a;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px;
+            background: #2a2a2a;
+            border-top: 1px solid #404040;
+        }
+
+        .attached-files {
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .file-tag {
+            background: #404040;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .file-tag .remove {
+            cursor: pointer;
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 12px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            font-size: 14px;
+            min-height: 60px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        .send-btn {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 0 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .send-btn:hover {
+            background: #0052a3;
+        }
+
+        .send-btn:disabled {
+            background: #404040;
+            cursor: not-allowed;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #505050;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>LLM Dashboard</h2>
+                <button class="btn" onclick="toggleSecondChat()">Open 2nd Chat</button>
+                <button class="btn btn-secondary" onclick="shareContext()">Share Context →</button>
+            </div>
+
+            <!-- GitHub Integration -->
+            <div class="github-section">
+                <h3>GITHUB REPOSITORIES</h3>
+                <button class="btn btn-secondary" onclick="loadRepos()">Load Repos</button>
+                <div class="repo-list" id="repoList"></div>
+                
+                <div id="branchSection" style="display: none;">
+                    <h3 style="margin-top: 15px;">BRANCH</h3>
+                    <select class="branch-selector" id="branchSelector" onchange="onBranchChange()"></select>
+                </div>
+
+                <div id="fileSection" style="display: none;">
+                    <h3 style="margin-top: 15px;">FILES</h3>
+                    <div class="file-list" id="fileList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="chat-container">
+                <!-- Chat Panel 1 -->
+                <div class="chat-panel" id="chat1">
+                    <div class="chat-header">
+                        <select class="model-selector" id="modelSelector1">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+                    <div class="messages" id="messages1"></div>
+                    <div class="input-area">
+                        <div class="attached-files" id="attachedFiles1"></div>
+                        <div class="input-wrapper">
+                            <textarea id="input1" placeholder="Type your message..."></textarea>
+                            <button class="send-btn" onclick="sendMessage(1)">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Panel 2 (Hidden by default) -->
+                <div class="chat-panel hidden" id="chat2">
+                    <div class="chat-header">
+                        <select class="model-selector" id="modelSelector2">
+                            <option value="">Loading models...</option>
+                        </select>
+                        <button class="close-chat" onclick="toggleSecondChat()">Close</button>
+                    </div>
+                    <div class="messages" id="messages2"></div>
+                    <div class="input-area">
+                        <div class="attached-files" id="attachedFiles2"></div>
+                        <div class="input-wrapper">
+                            <textarea id="input2" placeholder="Type your message..."></textarea>
+                            <button class="send-btn" onclick="sendMessage(2)">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRepo = null;
+        let currentBranch = null;
+        let attachedFiles = { 1: [], 2: [] };
+        let chatHistory = { 1: [], 2: [] };
+
+        // Load models on page load
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/models');
+                const data = await response.json();
+                const models = data.models;
+
+                const selector1 = document.getElementById('modelSelector1');
+                const selector2 = document.getElementById('modelSelector2');
+
+                selector1.innerHTML = '<option value="">Select a model...</option>';
+                selector2.innerHTML = '<option value="">Select a model...</option>';
+
+                models.forEach(model => {
+                    const option1 = document.createElement('option');
+                    option1.value = model.id;
+                    option1.textContent = `${model.name} (${model.provider})`;
+                    selector1.appendChild(option1);
+
+                    const option2 = option1.cloneNode(true);
+                    selector2.appendChild(option2);
+                });
+            } catch (error) {
+                console.error('Error loading models:', error);
+            }
+        }
+
+        // Load GitHub repos
+        async function loadRepos() {
+            const repoList = document.getElementById('repoList');
+            repoList.innerHTML = '<div class="loading">Loading repositories...</div>';
+
+            try {
+                const response = await fetch('/api/github/repos');
+                const data = await response.json();
+
+                if (data.error) {
+                    repoList.innerHTML = `<div style="color: #ff4444; padding: 10px;">${data.error}</div>`;
+                    return;
+                }
+
+                repoList.innerHTML = '';
+                data.repos.forEach(repo => {
+                    const item = document.createElement('div');
+                    item.className = 'repo-item';
+                    item.textContent = repo.full_name;
+                    item.onclick = () => selectRepo(repo);
+                    repoList.appendChild(item);
+                });
+            } catch (error) {
+                repoList.innerHTML = `<div style="color: #ff4444; padding: 10px;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Select a repository
+        async function selectRepo(repo) {
+            currentRepo = repo;
+            currentBranch = repo.default_branch;
+
+            // Highlight selected repo
+            document.querySelectorAll('.repo-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+
+            // Load branches
+            await loadBranches(repo.full_name);
+
+            // Load files
+            await loadFiles(repo.full_name, currentBranch);
+
+            document.getElementById('branchSection').style.display = 'block';
+            document.getElementById('fileSection').style.display = 'block';
+        }
+
+        // Load branches
+        async function loadBranches(repoName) {
+            try {
+                const response = await fetch(`/api/github/branches?repo=${encodeURIComponent(repoName)}`);
+                const data = await response.json();
+
+                const branchSelector = document.getElementById('branchSelector');
+                branchSelector.innerHTML = '';
+
+                data.branches.forEach(branch => {
+                    const option = document.createElement('option');
+                    option.value = branch;
+                    option.textContent = branch;
+                    if (branch === data.default_branch) {
+                        option.selected = true;
+                    }
+                    branchSelector.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading branches:', error);
+            }
+        }
+
+        // Load files from repo
+        async function loadFiles(repoName, branch) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '<div class="loading">Loading files...</div>';
+
+            try {
+                const response = await fetch(`/api/github/repo/${encodeURIComponent(repoName)}/tree?branch=${branch}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    fileList.innerHTML = `<div style="color: #ff4444; padding: 10px;">${data.error}</div>`;
+                    return;
+                }
+
+                fileList.innerHTML = '';
+                data.files.forEach(file => {
+                    const item = document.createElement('div');
+                    item.className = 'file-item';
+                    item.textContent = file.path;
+                    item.onclick = () => attachFile(file);
+                    fileList.appendChild(item);
+                });
+            } catch (error) {
+                fileList.innerHTML = `<div style="color: #ff4444; padding: 10px;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Branch change handler
+        function onBranchChange() {
+            currentBranch = document.getElementById('branchSelector').value;
+            if (currentRepo) {
+                loadFiles(currentRepo.full_name, currentBranch);
+            }
+        }
+
+        // Attach file to chat
+        async function attachFile(file) {
+            try {
+                const response = await fetch(`/api/github/file?repo=${encodeURIComponent(currentRepo.full_name)}&path=${encodeURIComponent(file.path)}&branch=${currentBranch}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error loading file: ' + data.error);
+                    return;
+                }
+
+                // Add to both chats by default
+                [1, 2].forEach(chatId => {
+                    const fileData = {
+                        path: file.path,
+                        content: data.content,
+                        repo: currentRepo.full_name,
+                        branch: currentBranch
+                    };
+
+                    // Avoid duplicates
+                    if (!attachedFiles[chatId].some(f => f.path === file.path)) {
+                        attachedFiles[chatId].push(fileData);
+                        updateAttachedFilesUI(chatId);
+                    }
+                });
+
+                alert(`Attached ${file.path} to both chats`);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Update attached files UI
+        function updateAttachedFilesUI(chatId) {
+            const container = document.getElementById(`attachedFiles${chatId}`);
+            container.innerHTML = '';
+
+            attachedFiles[chatId].forEach((file, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'file-tag';
+                tag.innerHTML = `
+                    <span>${file.path}</span>
+                    <span class="remove" onclick="removeAttachedFile(${chatId}, ${index})">×</span>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        // Remove attached file
+        function removeAttachedFile(chatId, index) {
+            attachedFiles[chatId].splice(index, 1);
+            updateAttachedFilesUI(chatId);
+        }
+
+        // Send message
+        async function sendMessage(chatId) {
+            const input = document.getElementById(`input${chatId}`);
+            const messagesDiv = document.getElementById(`messages${chatId}`);
+            const modelSelector = document.getElementById(`modelSelector${chatId}`);
+            const message = input.value.trim();
+            const model = modelSelector.value;
+
+            if (!message || !model) {
+                alert('Please select a model and enter a message');
+                return;
+            }
+
+            // Add user message to UI
+            addMessageToUI(chatId, 'user', message);
+
+            // Build messages array with file context
+            const messages = [...chatHistory[chatId]];
+            
+            // Add file context to the message
+            if (attachedFiles[chatId].length > 0) {
+                let fileContext = '\n\nAttached files:\n';
+                attachedFiles[chatId].forEach(file => {
+                    fileContext += `\n--- ${file.path} (${file.repo}, branch: ${file.branch}) ---\n${file.content}\n`;
+                });
+                messages.push({ role: 'user', content: message + fileContext });
+            } else {
+                messages.push({ role: 'user', content: message });
+            }
+
+            // Clear input
+            input.value = '';
+
+            // Show loading
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.textContent = 'Thinking...';
+            loadingDiv.id = `loading${chatId}`;
+            messagesDiv.appendChild(loadingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model, messages })
+                });
+
+                const data = await response.json();
+
+                // Remove loading
+                document.getElementById(`loading${chatId}`).remove();
+
+                if (data.error) {
+                    addMessageToUI(chatId, 'assistant', 'Error: ' + data.error);
+                    return;
+                }
+
+                const assistantMessage = data.choices[0].message.content;
+                addMessageToUI(chatId, 'assistant', assistantMessage);
+
+                // Update chat history
+                chatHistory[chatId].push({ role: 'user', content: message });
+                chatHistory[chatId].push({ role: 'assistant', content: assistantMessage });
+
+                // Check if assistant wants to write to files
+                await handleFileWrites(assistantMessage, chatId);
+
+            } catch (error) {
+                document.getElementById(`loading${chatId}`)?.remove();
+                addMessageToUI(chatId, 'assistant', 'Error: ' + error.message);
+            }
+        }
+
+        // Add message to UI
+        function addMessageToUI(chatId, role, content) {
+            const messagesDiv = document.getElementById(`messages${chatId}`);
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const header = document.createElement('div');
+            header.className = 'message-header';
+            header.textContent = role === 'user' ? 'You' : 'Assistant';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(header);
+            messageDiv.appendChild(contentDiv);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Handle file writes (simplified - LLM would need to output in specific format)
+        async function handleFileWrites(assistantMessage, chatId) {
+            // This is a simplified version - in production, you'd want the LLM to output
+            // file changes in a structured format (e.g., JSON or XML tags)
+            // For now, this is just a placeholder for the auto-commit functionality
+        }
+
+        // Toggle second chat
+        function toggleSecondChat() {
+            const chat2 = document.getElementById('chat2');
+            chat2.classList.toggle('hidden');
+        }
+
+        // Share context from chat 1 to chat 2
+        function shareContext() {
+            if (confirm('Copy chat history and attached files from Chat 1 to Chat 2?')) {
+                chatHistory[2] = [...chatHistory[1]];
+                attachedFiles[2] = [...attachedFiles[1]];
+                updateAttachedFilesUI(2);
+
+                // Recreate messages in chat 2
+                const messages2 = document.getElementById('messages2');
+                messages2.innerHTML = '';
+                chatHistory[2].forEach(msg => {
+                    addMessageToUI(2, msg.role, msg.content);
+                });
+
+                alert('Context shared successfully!');
+            }
+        }
+
+        // Initialize
+        loadModels();
+    </script>
+</body>
+</html>
