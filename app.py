@@ -12,7 +12,7 @@ CORS(app)
 # Environment variables
 NEBIUS_API_KEY = os.environ.get('NEBIUS_API_KEY')
 NEBIUS_API_URL = os.environ.get('NEBIUS_API_URL', 'https://api.studio.nebius.ai/v1/chat/completions')
-LOCAL_LLM_URL = os.environ.get('LOCAL_LLM_URL', 'http://localhost:11434')  # Cloudflare tunnel or localhost
+OLLAMA_API_URL = os.environ.get('OLLAMA_API_URL', 'https://llm.windowwanker.com/v1/chat/completions')
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
 GITHUB_EMAIL = os.environ.get('GITHUB_EMAIL', 'your-email@example.com')
 GITHUB_NAME = os.environ.get('GITHUB_NAME', 'Your Name')
@@ -20,86 +20,59 @@ GITHUB_NAME = os.environ.get('GITHUB_NAME', 'Your Name')
 # Initialize GitHub client
 github_client = Github(GITHUB_TOKEN) if GITHUB_TOKEN else None
 
-# Available models - Local (free) and Nebius (paid per token)
-MODELS = [
-    # ===== FREE LOCAL LLMs (via Cloudflare Tunnel) =====
-    {"id": "local:llama3.2", "name": "Llama 3.2", "provider": "Local", "tier": "free"},
-    {"id": "local:llama3.1", "name": "Llama 3.1", "provider": "Local", "tier": "free"},
-    {"id": "local:mistral", "name": "Mistral", "provider": "Local", "tier": "free"},
-    {"id": "local:codellama", "name": "Code Llama", "provider": "Local", "tier": "free"},
-    {"id": "local:deepseek-coder", "name": "DeepSeek Coder", "provider": "Local", "tier": "free"},
-    {"id": "local:qwen2.5", "name": "Qwen 2.5", "provider": "Local", "tier": "free"},
-    {"id": "local:phi3", "name": "Phi-3", "provider": "Local", "tier": "free"},
-    {"id": "local:gemma2", "name": "Gemma 2", "provider": "Local", "tier": "free"},
-
-    # ===== PAID NEBIUS MODELS (per token) =====
-    {"id": "MiniMaxAI/MiniMax-M2.1", "name": "MiniMax-M2.1", "provider": "Minimax", "tier": "paid"},
-    {"id": "zai-org/GLM-4.7-FP8", "name": "GLM-4.7", "provider": "Z.ai", "tier": "paid"},
-    {"id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek-V3.2", "provider": "DeepSeek", "tier": "paid"},
-    {"id": "openai/gpt-oss-120b", "name": "gpt-oss-120b", "provider": "OpenAI", "tier": "paid"},
-    {"id": "moonshotai/Kimi-K2-Instruct", "name": "Kimi-K2-Instruct", "provider": "Moonshot AI", "tier": "paid"},
-    {"id": "moonshotai/Kimi-K2-Thinking", "name": "Kimi-K2-Thinking", "provider": "Moonshot AI", "tier": "paid"},
-    {"id": "Qwen/Qwen3-Coder-480B-A35B-Instruct", "name": "Qwen3-Coder-480B-A35B-Instruct", "provider": "Qwen", "tier": "paid"},
-    {"id": "NousResearch/Hermes-4-405B", "name": "Hermes-4-405B", "provider": "NousResearch", "tier": "paid"},
-    {"id": "NousResearch/Hermes-4-70B", "name": "Hermes-4-70B", "provider": "NousResearch", "tier": "paid"},
-    {"id": "openai/gpt-oss-20b", "name": "gpt-oss-20b", "provider": "OpenAI", "tier": "paid"},
-    {"id": "zai-org/GLM-4.5", "name": "GLM-4.5", "provider": "Z.ai", "tier": "paid"},
-    {"id": "zai-org/GLM-4.5-Air", "name": "GLM-4.5-Air", "provider": "Z.ai", "tier": "paid"},
-    {"id": "PrimeIntellect/INTELLECT-3", "name": "INTELLECT-3", "provider": "Prime Intellect", "tier": "paid"},
-    {"id": "Qwen/Qwen3-Next-80B-A3B-Thinking", "name": "Qwen3-Next-80B-A3B-Thinking", "provider": "Qwen", "tier": "paid"},
-    {"id": "deepseek-ai/DeepSeek-R1-0528", "name": "DeepSeek-R1-0528", "provider": "DeepSeek", "tier": "paid"},
-    {"id": "deepseek-ai/DeepSeek-R1-0528-fast", "name": "DeepSeek-R1-0528 (Fast)", "provider": "DeepSeek", "tier": "paid"},
-    {"id": "Qwen/Qwen3-235B-A22B-Thinking-2507", "name": "Qwen3-235B-A22B-Thinking-2507", "provider": "Qwen", "tier": "paid"},
-    {"id": "Qwen/Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3-235B-A22B-Instruct-2507", "provider": "Qwen", "tier": "paid"},
-    {"id": "Qwen/Qwen3-30B-A3B-Thinking-2507", "name": "Qwen3-30B-A3B-Thinking-2507", "provider": "Qwen", "tier": "paid"},
-    {"id": "Qwen/Qwen3-30B-A3B-Instruct-2507", "name": "Qwen3-30B-A3B-Instruct-2507", "provider": "Qwen", "tier": "paid"},
-    {"id": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "name": "Qwen3-Coder-30B-A3B-Instruct", "provider": "Qwen", "tier": "paid"},
-    {"id": "Qwen/Qwen3-32B", "name": "Qwen3-32B", "provider": "Qwen", "tier": "paid"},
-    {"id": "Qwen/Qwen3-32B-fast", "name": "Qwen3-32B (Fast)", "provider": "Qwen", "tier": "paid"},
-    {"id": "nvidia/Llama-3.1-Nemotron-Ultra-253B-v1", "name": "Llama-3.1-Nemotron-Ultra-253B-v1", "provider": "NVIDIA", "tier": "paid"}
+# Local Ollama models
+LOCAL_MODELS = [
+    {"id": "local/llama3.1:8b", "name": "Llama 3.1 8B", "provider": "Local", "ollama_id": "llama3.1:8b"},
+    {"id": "local/mistral:7b-instruct", "name": "Mistral 7B Instruct", "provider": "Local", "ollama_id": "mistral:7b-instruct"},
+    {"id": "local/qwen2.5:latest", "name": "Qwen 2.5", "provider": "Local", "ollama_id": "qwen2.5:latest"},
+    {"id": "local/qwen2.5-coder:7b", "name": "Qwen 2.5 Coder 7B", "provider": "Local", "ollama_id": "qwen2.5-coder:7b"},
+    {"id": "local/deepseek-coder:6.7b", "name": "DeepSeek Coder 6.7B", "provider": "Local", "ollama_id": "deepseek-coder:6.7b"},
+    {"id": "local/nous-hermes2:latest", "name": "Nous Hermes 2", "provider": "Local", "ollama_id": "nous-hermes2:latest"},
+    {"id": "local/gemma-3-12b-abliterated", "name": "Gemma 3 12B Abliterated", "provider": "Local", "ollama_id": "hf.co/mlabonne/gemma-3-12b-it-abliterated-GGUF:Q4_K_M"},
+    {"id": "local/bakllava:latest", "name": "BakLLaVA (Vision)", "provider": "Local", "ollama_id": "bakllava:latest"},
 ]
 
-# Helper to check if model is local
+# Available models (Nebius cloud) with correct IDs from their API docs
+NEBIUS_MODELS = [
+    {"id": "MiniMaxAI/MiniMax-M2.1", "name": "MiniMax-M2.1", "provider": "Minimax"},
+    {"id": "zai-org/GLM-4.7-FP8", "name": "GLM-4.7", "provider": "Z.ai"},
+    {"id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek-V3.2", "provider": "DeepSeek"},
+    {"id": "openai/gpt-oss-120b", "name": "gpt-oss-120b", "provider": "OpenAI"},
+    {"id": "moonshotai/Kimi-K2-Instruct", "name": "Kimi-K2-Instruct", "provider": "Moonshot AI"},
+    {"id": "moonshotai/Kimi-K2-Thinking", "name": "Kimi-K2-Thinking", "provider": "Moonshot AI"},
+    {"id": "Qwen/Qwen3-Coder-480B-A35B-Instruct", "name": "Qwen3-Coder-480B-A35B-Instruct", "provider": "Qwen"},
+    {"id": "NousResearch/Hermes-4-405B", "name": "Hermes-4-405B", "provider": "NousResearch"},
+    {"id": "NousResearch/Hermes-4-70B", "name": "Hermes-4-70B", "provider": "NousResearch"},
+    {"id": "openai/gpt-oss-20b", "name": "gpt-oss-20b", "provider": "OpenAI"},
+    {"id": "zai-org/GLM-4.5", "name": "GLM-4.5", "provider": "Z.ai"},
+    {"id": "zai-org/GLM-4.5-Air", "name": "GLM-4.5-Air", "provider": "Z.ai"},
+    {"id": "PrimeIntellect/INTELLECT-3", "name": "INTELLECT-3", "provider": "Prime Intellect"},
+    {"id": "Qwen/Qwen3-Next-80B-A3B-Thinking", "name": "Qwen3-Next-80B-A3B-Thinking", "provider": "Qwen"},
+    {"id": "deepseek-ai/DeepSeek-R1-0528", "name": "DeepSeek-R1-0528", "provider": "DeepSeek"},
+    {"id": "deepseek-ai/DeepSeek-R1-0528-fast", "name": "DeepSeek-R1-0528 (Fast)", "provider": "DeepSeek"},
+    {"id": "Qwen/Qwen3-235B-A22B-Thinking-2507", "name": "Qwen3-235B-A22B-Thinking-2507", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3-235B-A22B-Instruct-2507", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-30B-A3B-Thinking-2507", "name": "Qwen3-30B-A3B-Thinking-2507", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-30B-A3B-Instruct-2507", "name": "Qwen3-30B-A3B-Instruct-2507", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "name": "Qwen3-Coder-30B-A3B-Instruct", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-32B", "name": "Qwen3-32B", "provider": "Qwen"},
+    {"id": "Qwen/Qwen3-32B-fast", "name": "Qwen3-32B (Fast)", "provider": "Qwen"},
+    {"id": "nvidia/Llama-3.1-Nemotron-Ultra-253B-v1", "name": "Llama-3.1-Nemotron-Ultra-253B-v1", "provider": "NVIDIA"}
+]
+
+# Combine all models - Local first, then Nebius
+ALL_MODELS = LOCAL_MODELS + NEBIUS_MODELS
+
 def is_local_model(model_id):
-    return model_id.startswith("local:")
+    """Check if a model ID is a local Ollama model"""
+    return model_id.startswith('local/')
 
-# Get the actual Ollama model name from local model ID
-def get_ollama_model_name(model_id):
-    return model_id.replace("local:", "")
-
-def call_local_llm(model_id, messages):
-    """Call local Ollama instance via Cloudflare tunnel or localhost.
-    Uses OpenAI-compatible chat endpoint for better conversation support.
-    """
-    ollama_model = get_ollama_model_name(model_id)
-
-    # Use OpenAI-compatible chat endpoint (Ollama supports this)
-    url = f"{LOCAL_LLM_URL}/v1/chat/completions"
-
-    try:
-        r = requests.post(
-            url,
-            json={
-                "model": ollama_model,
-                "messages": messages,
-                "stream": False
-            },
-            timeout=180  # Local models may be slower
-        )
-        r.raise_for_status()
-        return r.json()
-    except requests.exceptions.ConnectionError:
-        return {
-            "error": f"Cannot connect to local LLM at {LOCAL_LLM_URL}. Make sure Ollama is running and the Cloudflare tunnel is active."
-        }
-    except requests.exceptions.Timeout:
-        return {
-            "error": "Local LLM request timed out. The model may still be loading."
-        }
-    except Exception as e:
-        return {
-            "error": f"Local LLM error: {str(e)}"
-        }
+def get_ollama_model_id(model_id):
+    """Get the actual Ollama model ID from our internal ID"""
+    for model in LOCAL_MODELS:
+        if model['id'] == model_id:
+            return model.get('ollama_id', model_id.replace('local/', ''))
+    return model_id.replace('local/', '')
 
 @app.route('/')
 def index():
@@ -107,7 +80,7 @@ def index():
 
 @app.route('/api/models', methods=['GET'])
 def get_models():
-    return jsonify({"models": MODELS})
+    return jsonify({"models": ALL_MODELS})
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -119,19 +92,47 @@ def chat():
     if not model or not messages:
         return jsonify({"error": "Model and messages are required"}), 400
 
-    # Route to local LLM if it's a local model
-    if is_local_model(model):
-        result = call_local_llm(model, messages)
-        if "error" in result:
-            return jsonify(result), 500
-        return jsonify(result)
-    
     try:
-        headers = {
-            'Authorization': f'Bearer {NEBIUS_API_KEY}',
-            'Content-Type': 'application/json'
-        }
-        
+        # Determine if this is a local or cloud model
+        use_local = is_local_model(model)
+
+        if use_local:
+            # Local Ollama model
+            api_url = OLLAMA_API_URL
+            actual_model = get_ollama_model_id(model)
+            headers = {
+                'Content-Type': 'application/json'
+            }
+        else:
+            # Nebius cloud model
+            api_url = NEBIUS_API_URL
+            actual_model = model
+            headers = {
+                'Authorization': f'Bearer {NEBIUS_API_KEY}',
+                'Content-Type': 'application/json'
+            }
+
+        # Add system prompt for efficient tool usage when repo is connected
+        if repo_context:
+            system_prompt = """You are a helpful coding assistant with access to a GitHub repository. You can read and edit files.
+
+EFFICIENCY GUIDELINES - Follow these to avoid running out of steps:
+1. READ files only ONCE. Don't re-read files you've already seen.
+2. Use edit_file with replace_all=true for bulk changes (e.g., changing all occurrences of a color).
+3. PLAN your edits first, then execute them efficiently.
+4. For color scheme changes: identify all unique colors, then use edit_file with replace_all=true for each color.
+5. Combine related changes - don't make separate calls for the same type of change.
+6. You have a maximum of 25 tool calls, so be efficient!
+
+TOOL TIPS:
+- edit_file: Best for targeted changes. Use old_text/new_text with replace_all=true for global find-replace.
+- write_file: Only use for new files or complete rewrites. Avoid for small edits.
+- list_files: Use to discover available files before reading."""
+
+            # Prepend system message if not already present
+            if not messages or messages[0].get('role') != 'system':
+                messages = [{'role': 'system', 'content': system_prompt}] + messages
+
         # Define tools for GitHub file operations
         tools = []
         if repo_context:
@@ -225,17 +226,20 @@ def chat():
             ]
         
         payload = {
-            'model': model,
+            'model': actual_model,
             'messages': messages,
             'temperature': data.get('temperature', 0.7),
             'max_tokens': data.get('max_tokens', 4000)
         }
-        
+
+        # Add tools if available (both local and cloud models can use tools)
         if tools:
             payload['tools'] = tools
             payload['tool_choice'] = 'auto'
-        
-        response = requests.post(NEBIUS_API_URL, headers=headers, json=payload, timeout=120)
+
+        # Use longer timeout for local models (they can be slower)
+        timeout = 300 if use_local else 120
+        response = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
         response.raise_for_status()
         
         result = response.json()
