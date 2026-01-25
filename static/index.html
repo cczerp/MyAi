@@ -590,7 +590,21 @@
                     body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
+                // Check if response is OK before parsing
+                if (!response.ok) {
+                    document.getElementById(`loading${chatId}`)?.remove();
+                    addMessageToUI(chatId, 'assistant', `Error: Server returned ${response.status} ${response.statusText}`);
+                    return;
+                }
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    document.getElementById(`loading${chatId}`)?.remove();
+                    addMessageToUI(chatId, 'assistant', 'Error: Invalid response from server (not JSON)');
+                    return;
+                }
 
                 if (data.error) {
                     document.getElementById(`loading${chatId}`)?.remove();
