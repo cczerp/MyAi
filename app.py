@@ -77,11 +77,22 @@ def chat():
             'max_tokens': data.get('max_tokens', 4000)
         }
         
-        response = requests.post(NEBIUS_API_URL, headers=headers, json=payload)
+        response = requests.post(NEBIUS_API_URL, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
         
-        return jsonify(response.json())
+        result = response.json()
+        
+        # Ensure the response has the expected OpenAI format
+        if 'choices' not in result:
+            return jsonify({"error": f"Unexpected API response format: {result}"}), 500
+        
+        return jsonify(result)
     
+    except requests.exceptions.HTTPError as e:
+        error_msg = f"HTTP {e.response.status_code}: {e.response.text}"
+        return jsonify({"error": error_msg}), 500
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "Request timed out"}), 504
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
