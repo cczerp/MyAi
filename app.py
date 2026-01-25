@@ -60,6 +60,7 @@ def chat():
     data = request.json
     model = data.get('model')
     messages = data.get('messages', [])
+    repo_context = data.get('repo_context')  # {repo, branch}
     
     if not model or not messages:
         return jsonify({"error": "Model and messages are required"}), 400
@@ -70,12 +71,75 @@ def chat():
             'Content-Type': 'application/json'
         }
         
+        # Define tools for GitHub file operations
+        tools = []
+        if repo_context:
+            tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "read_file",
+                        "description": f"Read the contents of any file from the repository {repo_context['repo']} on branch {repo_context['branch']}",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "file_path": {
+                                    "type": "string",
+                                    "description": "The path to the file in the repository (e.g., 'src/app.py', 'README.md')"
+                                }
+                            },
+                            "required": ["file_path"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "write_file",
+                        "description": f"Write or update a file in the repository {repo_context['repo']} on branch {repo_context['branch']}. Changes are automatically committed.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "file_path": {
+                                    "type": "string",
+                                    "description": "The path to the file in the repository"
+                                },
+                                "content": {
+                                    "type": "string",
+                                    "description": "The complete content to write to the file"
+                                },
+                                "commit_message": {
+                                    "type": "string",
+                                    "description": "Commit message describing the changes"
+                                }
+                            },
+                            "required": ["file_path", "content", "commit_message"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "list_files",
+                        "description": f"List all files in the repository {repo_context['repo']} on branch {repo_context['branch']}",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    }
+                }
+            ]
+        
         payload = {
             'model': model,
             'messages': messages,
             'temperature': data.get('temperature', 0.7),
             'max_tokens': data.get('max_tokens', 4000)
         }
+        
+        if tools:
+            payload['tools'] = tools
+            payload['tool_choice'] = 'auto'
         
         response = requests.post(NEBIUS_API_URL, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
@@ -95,6 +159,100 @@ def chat():
         return jsonify({"error": "Request timed out"}), 504
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/execute_tool', methods=['POST'])
+def execute_tool():
+    """Execute a tool call from the LLM"""
+    data = request.json
+    tool_name = data.get('tool_name')
+    arguments = data.get('arguments', {})
+    repo_context = data.get('repo_context')
+    
+    if not tool_name:
+        return jsonify({"error": "tool_name is required"}), 400
+    
+    try:
+        if tool_name == 'read_file':
+            file_path = arguments.get('file_path')
+            if not file_path or not repo_context:
+                return jsonify({"error": "file_path and repo_context required"}), 400
+            
+            repo = github_client.get_repo(repo_context['repo'])
+            file_content = repo.get_contents(file_path, ref=repo_context['branch'])
+            content = base64.b64decode(file_content.content).decode('utf-8')
+            
+            return jsonify({
+                "success": True,
+                "content": content,
+                "path": file_path
+            })
+        
+        elif tool_name == 'write_file':
+            file_path = arguments.get('file_path')
+            content = arguments.get('content')
+            commit_message = arguments.get('commit_message', f'Update {file_path}')
+            
+            if not all([file_path, content, repo_context]):
+                return jsonify({"error": "file_path, content, and repo_context required"}), 400
+            
+            repo = github_client.get_repo(repo_context['repo'])
+            branch = repo_context['branch']
+            
+            # Try to get existing file
+            try:
+                file = repo.get_contents(file_path, ref=branch)
+                # Update existing file
+                result = repo.update_file(
+                    path=file_path,
+                    message=commit_message,
+                    content=content,
+                    sha=file.sha,
+                    branch=branch,
+                    committer={
+                        'name': GITHUB_NAME,
+                        'email': GITHUB_EMAIL
+                    }
+                )
+            except:
+                # Create new file
+                result = repo.create_file(
+                    path=file_path,
+                    message=commit_message,
+                    content=content,
+                    branch=branch,
+                    committer={
+                        'name': GITHUB_NAME,
+                        'email': GITHUB_EMAIL
+                    }
+                )
+            
+            return jsonify({
+                "success": True,
+                "commit": result['commit'].sha,
+                "message": f"Committed changes to {file_path}"
+            })
+        
+        elif tool_name == 'list_files':
+            if not repo_context:
+                return jsonify({"error": "repo_context required"}), 400
+            
+            repo = github_client.get_repo(repo_context['repo'])
+            tree = repo.get_git_tree(repo_context['branch'], recursive=True)
+            files = [item.path for item in tree.tree if item.type == 'blob']
+            
+            return jsonify({
+                "success": True,
+                "files": files
+            })
+        
+        else:
+            return jsonify({"error": f"Unknown tool: {tool_name}"}), 400
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 @app.route('/api/github/repos', methods=['GET'])
 def list_repos():
@@ -142,6 +300,59 @@ def get_repo_tree(repo_name):
             "branch": branch,
             "repo": repo_name
         })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/github/repo/select', methods=['POST'])
+def select_repo():
+    if not github_client:
+        return jsonify({"error": "GitHub token not configured"}), 500
+    
+    data = request.json
+    repo_name = data.get('repo')
+    base_branch = data.get('base_branch')
+    
+    if not repo_name:
+        return jsonify({"error": "repo is required"}), 400
+    
+    try:
+        repo = github_client.get_repo(repo_name)
+        
+        # Get base branch if not specified
+        if not base_branch:
+            base_branch = repo.default_branch
+        
+        # Create a new branch name with timestamp
+        timestamp = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
+        new_branch_name = f"chat-{timestamp}"
+        
+        # Get the base branch reference
+        base_ref = repo.get_git_ref(f"heads/{base_branch}")
+        base_sha = base_ref.object.sha
+        
+        # Create new branch from base
+        repo.create_git_ref(ref=f"refs/heads/{new_branch_name}", sha=base_sha)
+        
+        # Get all files in the repo
+        tree = repo.get_git_tree(new_branch_name, recursive=True)
+        files = []
+        for item in tree.tree:
+            if item.type == 'blob':  # Only files
+                files.append({
+                    'path': item.path,
+                    'sha': item.sha,
+                    'size': item.size
+                })
+        
+        return jsonify({
+            "success": True,
+            "branch": new_branch_name,
+            "base_branch": base_branch,
+            "repo": repo_name,
+            "files": files,
+            "message": f"Created branch '{new_branch_name}' from '{base_branch}'"
+        })
+    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
