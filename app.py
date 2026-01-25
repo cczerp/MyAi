@@ -12,6 +12,7 @@ CORS(app)
 # Environment variables
 NEBIUS_API_KEY = os.environ.get('NEBIUS_API_KEY')
 NEBIUS_API_URL = os.environ.get('NEBIUS_API_URL', 'https://api.studio.nebius.ai/v1/chat/completions')
+LOCAL_LLM_URL = os.environ.get('LOCAL_LLM_URL', 'http://localhost:11434')  # Cloudflare tunnel or localhost
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
 GITHUB_EMAIL = os.environ.get('GITHUB_EMAIL', 'your-email@example.com')
 GITHUB_NAME = os.environ.get('GITHUB_NAME', 'Your Name')
@@ -19,59 +20,86 @@ GITHUB_NAME = os.environ.get('GITHUB_NAME', 'Your Name')
 # Initialize GitHub client
 github_client = Github(GITHUB_TOKEN) if GITHUB_TOKEN else None
 
-# Available models (first 24 from Nebius) with correct IDs from their API docs
+# Available models - Local (free) and Nebius (paid per token)
 MODELS = [
-    {"id": "MiniMaxAI/MiniMax-M2.1", "name": "MiniMax-M2.1", "provider": "Minimax"},
-    {"id": "zai-org/GLM-4.7-FP8", "name": "GLM-4.7", "provider": "Z.ai"},
-    {"id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek-V3.2", "provider": "DeepSeek"},
-    {"id": "openai/gpt-oss-120b", "name": "gpt-oss-120b", "provider": "OpenAI"},
-    {"id": "moonshotai/Kimi-K2-Instruct", "name": "Kimi-K2-Instruct", "provider": "Moonshot AI"},
-    {"id": "moonshotai/Kimi-K2-Thinking", "name": "Kimi-K2-Thinking", "provider": "Moonshot AI"},
-    {"id": "Qwen/Qwen3-Coder-480B-A35B-Instruct", "name": "Qwen3-Coder-480B-A35B-Instruct", "provider": "Qwen"},
-    {"id": "NousResearch/Hermes-4-405B", "name": "Hermes-4-405B", "provider": "NousResearch"},
-    {"id": "NousResearch/Hermes-4-70B", "name": "Hermes-4-70B", "provider": "NousResearch"},
-    {"id": "openai/gpt-oss-20b", "name": "gpt-oss-20b", "provider": "OpenAI"},
-    {"id": "zai-org/GLM-4.5", "name": "GLM-4.5", "provider": "Z.ai"},
-    {"id": "zai-org/GLM-4.5-Air", "name": "GLM-4.5-Air", "provider": "Z.ai"},
-    {"id": "PrimeIntellect/INTELLECT-3", "name": "INTELLECT-3", "provider": "Prime Intellect"},
-    {"id": "Qwen/Qwen3-Next-80B-A3B-Thinking", "name": "Qwen3-Next-80B-A3B-Thinking", "provider": "Qwen"},
-    {"id": "deepseek-ai/DeepSeek-R1-0528", "name": "DeepSeek-R1-0528", "provider": "DeepSeek"},
-    {"id": "deepseek-ai/DeepSeek-R1-0528-fast", "name": "DeepSeek-R1-0528 (Fast)", "provider": "DeepSeek"},
-    {"id": "Qwen/Qwen3-235B-A22B-Thinking-2507", "name": "Qwen3-235B-A22B-Thinking-2507", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3-235B-A22B-Instruct-2507", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-30B-A3B-Thinking-2507", "name": "Qwen3-30B-A3B-Thinking-2507", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-30B-A3B-Instruct-2507", "name": "Qwen3-30B-A3B-Instruct-2507", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "name": "Qwen3-Coder-30B-A3B-Instruct", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-32B", "name": "Qwen3-32B", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-32B-fast", "name": "Qwen3-32B (Fast)", "provider": "Qwen"},
-    {"id": "nvidia/Llama-3.1-Nemotron-Ultra-253B-v1", "name": "Llama-3.1-Nemotron-Ultra-253B-v1", "provider": "NVIDIA"}
+    # ===== FREE LOCAL LLMs (via Cloudflare Tunnel) =====
+    {"id": "local:llama3.2", "name": "Llama 3.2", "provider": "Local", "tier": "free"},
+    {"id": "local:llama3.1", "name": "Llama 3.1", "provider": "Local", "tier": "free"},
+    {"id": "local:mistral", "name": "Mistral", "provider": "Local", "tier": "free"},
+    {"id": "local:codellama", "name": "Code Llama", "provider": "Local", "tier": "free"},
+    {"id": "local:deepseek-coder", "name": "DeepSeek Coder", "provider": "Local", "tier": "free"},
+    {"id": "local:qwen2.5", "name": "Qwen 2.5", "provider": "Local", "tier": "free"},
+    {"id": "local:phi3", "name": "Phi-3", "provider": "Local", "tier": "free"},
+    {"id": "local:gemma2", "name": "Gemma 2", "provider": "Local", "tier": "free"},
+
+    # ===== PAID NEBIUS MODELS (per token) =====
+    {"id": "MiniMaxAI/MiniMax-M2.1", "name": "MiniMax-M2.1", "provider": "Minimax", "tier": "paid"},
+    {"id": "zai-org/GLM-4.7-FP8", "name": "GLM-4.7", "provider": "Z.ai", "tier": "paid"},
+    {"id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek-V3.2", "provider": "DeepSeek", "tier": "paid"},
+    {"id": "openai/gpt-oss-120b", "name": "gpt-oss-120b", "provider": "OpenAI", "tier": "paid"},
+    {"id": "moonshotai/Kimi-K2-Instruct", "name": "Kimi-K2-Instruct", "provider": "Moonshot AI", "tier": "paid"},
+    {"id": "moonshotai/Kimi-K2-Thinking", "name": "Kimi-K2-Thinking", "provider": "Moonshot AI", "tier": "paid"},
+    {"id": "Qwen/Qwen3-Coder-480B-A35B-Instruct", "name": "Qwen3-Coder-480B-A35B-Instruct", "provider": "Qwen", "tier": "paid"},
+    {"id": "NousResearch/Hermes-4-405B", "name": "Hermes-4-405B", "provider": "NousResearch", "tier": "paid"},
+    {"id": "NousResearch/Hermes-4-70B", "name": "Hermes-4-70B", "provider": "NousResearch", "tier": "paid"},
+    {"id": "openai/gpt-oss-20b", "name": "gpt-oss-20b", "provider": "OpenAI", "tier": "paid"},
+    {"id": "zai-org/GLM-4.5", "name": "GLM-4.5", "provider": "Z.ai", "tier": "paid"},
+    {"id": "zai-org/GLM-4.5-Air", "name": "GLM-4.5-Air", "provider": "Z.ai", "tier": "paid"},
+    {"id": "PrimeIntellect/INTELLECT-3", "name": "INTELLECT-3", "provider": "Prime Intellect", "tier": "paid"},
+    {"id": "Qwen/Qwen3-Next-80B-A3B-Thinking", "name": "Qwen3-Next-80B-A3B-Thinking", "provider": "Qwen", "tier": "paid"},
+    {"id": "deepseek-ai/DeepSeek-R1-0528", "name": "DeepSeek-R1-0528", "provider": "DeepSeek", "tier": "paid"},
+    {"id": "deepseek-ai/DeepSeek-R1-0528-fast", "name": "DeepSeek-R1-0528 (Fast)", "provider": "DeepSeek", "tier": "paid"},
+    {"id": "Qwen/Qwen3-235B-A22B-Thinking-2507", "name": "Qwen3-235B-A22B-Thinking-2507", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3-235B-A22B-Instruct-2507", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-30B-A3B-Thinking-2507", "name": "Qwen3-30B-A3B-Thinking-2507", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-30B-A3B-Instruct-2507", "name": "Qwen3-30B-A3B-Instruct-2507", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "name": "Qwen3-Coder-30B-A3B-Instruct", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-32B", "name": "Qwen3-32B", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-32B-fast", "name": "Qwen3-32B (Fast)", "provider": "Qwen", "tier": "paid"},
+    {"id": "nvidia/Llama-3.1-Nemotron-Ultra-253B-v1", "name": "Llama-3.1-Nemotron-Ultra-253B-v1", "provider": "NVIDIA", "tier": "paid"}
 ]
 
-def call_local_llm(model, messages):
-    prompt = "\n".join([m["content"] for m in messages if m["role"] == "user"])
+# Helper to check if model is local
+def is_local_model(model_id):
+    return model_id.startswith("local:")
 
-    r = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": model,
-            "prompt": prompt,
-            "stream": False
-        },
-        timeout=120
-    )
-    r.raise_for_status()
-    data = r.json()
+# Get the actual Ollama model name from local model ID
+def get_ollama_model_name(model_id):
+    return model_id.replace("local:", "")
 
-    return {
-        "choices": [
-            {
-                "message": {
-                    "role": "assistant",
-                    "content": data.get("response", "")
-                }
-            }
-        ]
-    }
+def call_local_llm(model_id, messages):
+    """Call local Ollama instance via Cloudflare tunnel or localhost.
+    Uses OpenAI-compatible chat endpoint for better conversation support.
+    """
+    ollama_model = get_ollama_model_name(model_id)
+
+    # Use OpenAI-compatible chat endpoint (Ollama supports this)
+    url = f"{LOCAL_LLM_URL}/v1/chat/completions"
+
+    try:
+        r = requests.post(
+            url,
+            json={
+                "model": ollama_model,
+                "messages": messages,
+                "stream": False
+            },
+            timeout=180  # Local models may be slower
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.exceptions.ConnectionError:
+        return {
+            "error": f"Cannot connect to local LLM at {LOCAL_LLM_URL}. Make sure Ollama is running and the Cloudflare tunnel is active."
+        }
+    except requests.exceptions.Timeout:
+        return {
+            "error": "Local LLM request timed out. The model may still be loading."
+        }
+    except Exception as e:
+        return {
+            "error": f"Local LLM error: {str(e)}"
+        }
 
 @app.route('/')
 def index():
@@ -88,12 +116,15 @@ def chat():
     messages = data.get('messages', [])
     repo_context = data.get('repo_context')  # {repo, branch}
 
-    if provider == "local":
-        return jsonify(call_local_llm(model, messages))
-
-    
     if not model or not messages:
         return jsonify({"error": "Model and messages are required"}), 400
+
+    # Route to local LLM if it's a local model
+    if is_local_model(model):
+        result = call_local_llm(model, messages)
+        if "error" in result:
+            return jsonify(result), 500
+        return jsonify(result)
     
     try:
         headers = {
