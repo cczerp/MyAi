@@ -28,7 +28,7 @@
         .sidebar {
             width: 300px;
             background: #0d0d0d;
-            border-right: 1px solid #808080;
+            border-right: 1px solid #B8860B;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
@@ -36,7 +36,7 @@
 
         .sidebar-header {
             padding: 20px;
-            border-bottom: 1px solid #808080;
+            border-bottom: 1px solid #B8860B;
         }
 
         .sidebar-header h2 {
@@ -62,7 +62,7 @@
         }
 
         .btn-secondary {
-            background: #808080;
+            background: #B8860B;
             color: #000000;
         }
 
@@ -73,7 +73,7 @@
         /* GitHub Section */
         .github-section {
             padding: 20px;
-            border-bottom: 1px solid #808080;
+            border-bottom: 1px solid #B8860B;
         }
 
         .github-section h3 {
@@ -97,7 +97,7 @@
         }
 
         .repo-item:hover, .file-item:hover {
-            background: #808080;
+            background: #B8860B;
         }
 
         .repo-item.selected, .file-item.selected {
@@ -110,7 +110,7 @@
             padding: 8px;
             background: #000000;
             color: #e0e0e0;
-            border: 1px solid #808080;
+            border: 1px solid #B8860B;
             border-radius: 4px;
             margin-top: 10px;
         }
@@ -132,7 +132,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid #808080;
+            border-right: 1px solid #B8860B;
         }
 
         .chat-panel:last-child {
@@ -147,7 +147,7 @@
         .chat-header {
             padding: 15px 20px;
             background: #0d0d0d;
-            border-bottom: 1px solid #808080;
+            border-bottom: 1px solid #B8860B;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -157,7 +157,7 @@
             padding: 8px 12px;
             background: #000000;
             color: #e0e0e0;
-            border: 1px solid #808080;
+            border: 1px solid #B8860B;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
@@ -215,7 +215,7 @@
         .input-area {
             padding: 20px;
             background: #0d0d0d;
-            border-top: 1px solid #808080;
+            border-top: 1px solid #B8860B;
         }
 
         .attached-files {
@@ -226,7 +226,7 @@
         }
 
         .file-tag {
-            background: #808080;
+            background: #B8860B;
             padding: 6px 12px;
             border-radius: 16px;
             font-size: 12px;
@@ -251,7 +251,7 @@
             padding: 12px;
             background: #000000;
             color: #e0e0e0;
-            border: 1px solid #808080;
+            border: 1px solid #B8860B;
             border-radius: 8px;
             resize: none;
             font-family: inherit;
@@ -280,7 +280,7 @@
         }
 
         .send-btn:disabled {
-            background: #808080;
+            background: #B8860B;
             cursor: not-allowed;
         }
 
@@ -302,7 +302,7 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #808080;
+            background: #B8860B;
             border-radius: 4px;
         }
 
@@ -634,7 +634,13 @@
                 // Check if response is OK before parsing
                 if (!response.ok) {
                     document.getElementById(`loading${chatId}`)?.remove();
-                    addMessageToUI(chatId, 'assistant', `Error: Server returned ${response.status} ${response.statusText}`);
+                    // Try to get error message from response body
+                    try {
+                        const errorData = await response.json();
+                        addMessageToUI(chatId, 'assistant', `Error: ${errorData.error || response.statusText}`);
+                    } catch {
+                        addMessageToUI(chatId, 'assistant', `Error: Server returned ${response.status} ${response.statusText}`);
+                    }
                     return;
                 }
 
@@ -805,6 +811,20 @@
 
         // Initialize
         loadModels();
+
+        // Add Enter key to send messages (Shift+Enter for new line)
+        document.getElementById('input1').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(1);
+            }
+        });
+        document.getElementById('input2').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(2);
+            }
+        });
     </script>
 </body>
 </html>
