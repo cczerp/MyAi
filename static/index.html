@@ -381,7 +381,12 @@
             try {
                 const response = await fetch('/api/models');
                 const data = await response.json();
-                const models = data.models;
+                const models = data.models || [];
+
+                if (models.length === 0) {
+                    console.error('No models returned from API');
+                    return;
+                }
 
                 const selector1 = document.getElementById('modelSelector1');
                 const selector2 = document.getElementById('modelSelector2');
