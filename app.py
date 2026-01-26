@@ -20,44 +20,44 @@ GITHUB_NAME = os.environ.get('GITHUB_NAME', 'Your Name')
 # Initialize GitHub client
 github_client = Github(GITHUB_TOKEN) if GITHUB_TOKEN else None
 
-# Local Ollama models
+# Local Ollama models (FREE)
 LOCAL_MODELS = [
-    {"id": "local/llama3.1:8b", "name": "Llama 3.1 8B", "provider": "Local", "ollama_id": "llama3.1:8b"},
-    {"id": "local/mistral:7b-instruct", "name": "Mistral 7B Instruct", "provider": "Local", "ollama_id": "mistral:7b-instruct"},
-    {"id": "local/qwen2.5:latest", "name": "Qwen 2.5", "provider": "Local", "ollama_id": "qwen2.5:latest"},
-    {"id": "local/qwen2.5-coder:7b", "name": "Qwen 2.5 Coder 7B", "provider": "Local", "ollama_id": "qwen2.5-coder:7b"},
-    {"id": "local/deepseek-coder:6.7b", "name": "DeepSeek Coder 6.7B", "provider": "Local", "ollama_id": "deepseek-coder:6.7b"},
-    {"id": "local/nous-hermes2:latest", "name": "Nous Hermes 2", "provider": "Local", "ollama_id": "nous-hermes2:latest"},
-    {"id": "local/gemma-3-12b-abliterated", "name": "Gemma 3 12B Abliterated", "provider": "Local", "ollama_id": "hf.co/mlabonne/gemma-3-12b-it-abliterated-GGUF:Q4_K_M"},
-    {"id": "local/bakllava:latest", "name": "BakLLaVA (Vision)", "provider": "Local", "ollama_id": "bakllava:latest"},
+    {"id": "local/llama3.1:8b", "name": "Llama 3.1 8B", "provider": "Local", "ollama_id": "llama3.1:8b", "tier": "free"},
+    {"id": "local/mistral:7b-instruct", "name": "Mistral 7B Instruct", "provider": "Local", "ollama_id": "mistral:7b-instruct", "tier": "free"},
+    {"id": "local/qwen2.5:latest", "name": "Qwen 2.5", "provider": "Local", "ollama_id": "qwen2.5:latest", "tier": "free"},
+    {"id": "local/qwen2.5-coder:7b", "name": "Qwen 2.5 Coder 7B", "provider": "Local", "ollama_id": "qwen2.5-coder:7b", "tier": "free"},
+    {"id": "local/deepseek-coder:6.7b", "name": "DeepSeek Coder 6.7B", "provider": "Local", "ollama_id": "deepseek-coder:6.7b", "tier": "free"},
+    {"id": "local/nous-hermes2:latest", "name": "Nous Hermes 2", "provider": "Local", "ollama_id": "nous-hermes2:latest", "tier": "free"},
+    {"id": "local/gemma-3-12b-abliterated", "name": "Gemma 3 12B Abliterated", "provider": "Local", "ollama_id": "hf.co/mlabonne/gemma-3-12b-it-abliterated-GGUF:Q4_K_M", "tier": "free"},
+    {"id": "local/bakllava:latest", "name": "BakLLaVA (Vision)", "provider": "Local", "ollama_id": "bakllava:latest", "tier": "free"},
 ]
 
-# Available models (Nebius cloud) with correct IDs from their API docs
+# Available models (Nebius cloud - PAID per token) with correct IDs from their API docs
 NEBIUS_MODELS = [
-    {"id": "MiniMaxAI/MiniMax-M2.1", "name": "MiniMax-M2.1", "provider": "Minimax"},
-    {"id": "zai-org/GLM-4.7-FP8", "name": "GLM-4.7", "provider": "Z.ai"},
-    {"id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek-V3.2", "provider": "DeepSeek"},
-    {"id": "openai/gpt-oss-120b", "name": "gpt-oss-120b", "provider": "OpenAI"},
-    {"id": "moonshotai/Kimi-K2-Instruct", "name": "Kimi-K2-Instruct", "provider": "Moonshot AI"},
-    {"id": "moonshotai/Kimi-K2-Thinking", "name": "Kimi-K2-Thinking", "provider": "Moonshot AI"},
-    {"id": "Qwen/Qwen3-Coder-480B-A35B-Instruct", "name": "Qwen3-Coder-480B-A35B-Instruct", "provider": "Qwen"},
-    {"id": "NousResearch/Hermes-4-405B", "name": "Hermes-4-405B", "provider": "NousResearch"},
-    {"id": "NousResearch/Hermes-4-70B", "name": "Hermes-4-70B", "provider": "NousResearch"},
-    {"id": "openai/gpt-oss-20b", "name": "gpt-oss-20b", "provider": "OpenAI"},
-    {"id": "zai-org/GLM-4.5", "name": "GLM-4.5", "provider": "Z.ai"},
-    {"id": "zai-org/GLM-4.5-Air", "name": "GLM-4.5-Air", "provider": "Z.ai"},
-    {"id": "PrimeIntellect/INTELLECT-3", "name": "INTELLECT-3", "provider": "Prime Intellect"},
-    {"id": "Qwen/Qwen3-Next-80B-A3B-Thinking", "name": "Qwen3-Next-80B-A3B-Thinking", "provider": "Qwen"},
-    {"id": "deepseek-ai/DeepSeek-R1-0528", "name": "DeepSeek-R1-0528", "provider": "DeepSeek"},
-    {"id": "deepseek-ai/DeepSeek-R1-0528-fast", "name": "DeepSeek-R1-0528 (Fast)", "provider": "DeepSeek"},
-    {"id": "Qwen/Qwen3-235B-A22B-Thinking-2507", "name": "Qwen3-235B-A22B-Thinking-2507", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3-235B-A22B-Instruct-2507", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-30B-A3B-Thinking-2507", "name": "Qwen3-30B-A3B-Thinking-2507", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-30B-A3B-Instruct-2507", "name": "Qwen3-30B-A3B-Instruct-2507", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "name": "Qwen3-Coder-30B-A3B-Instruct", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-32B", "name": "Qwen3-32B", "provider": "Qwen"},
-    {"id": "Qwen/Qwen3-32B-fast", "name": "Qwen3-32B (Fast)", "provider": "Qwen"},
-    {"id": "nvidia/Llama-3.1-Nemotron-Ultra-253B-v1", "name": "Llama-3.1-Nemotron-Ultra-253B-v1", "provider": "NVIDIA"}
+    {"id": "MiniMaxAI/MiniMax-M2.1", "name": "MiniMax-M2.1", "provider": "Minimax", "tier": "paid"},
+    {"id": "zai-org/GLM-4.7-FP8", "name": "GLM-4.7", "provider": "Z.ai", "tier": "paid"},
+    {"id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek-V3.2", "provider": "DeepSeek", "tier": "paid"},
+    {"id": "openai/gpt-oss-120b", "name": "gpt-oss-120b", "provider": "OpenAI", "tier": "paid"},
+    {"id": "moonshotai/Kimi-K2-Instruct", "name": "Kimi-K2-Instruct", "provider": "Moonshot AI", "tier": "paid"},
+    {"id": "moonshotai/Kimi-K2-Thinking", "name": "Kimi-K2-Thinking", "provider": "Moonshot AI", "tier": "paid"},
+    {"id": "Qwen/Qwen3-Coder-480B-A35B-Instruct", "name": "Qwen3-Coder-480B-A35B-Instruct", "provider": "Qwen", "tier": "paid"},
+    {"id": "NousResearch/Hermes-4-405B", "name": "Hermes-4-405B", "provider": "NousResearch", "tier": "paid"},
+    {"id": "NousResearch/Hermes-4-70B", "name": "Hermes-4-70B", "provider": "NousResearch", "tier": "paid"},
+    {"id": "openai/gpt-oss-20b", "name": "gpt-oss-20b", "provider": "OpenAI", "tier": "paid"},
+    {"id": "zai-org/GLM-4.5", "name": "GLM-4.5", "provider": "Z.ai", "tier": "paid"},
+    {"id": "zai-org/GLM-4.5-Air", "name": "GLM-4.5-Air", "provider": "Z.ai", "tier": "paid"},
+    {"id": "PrimeIntellect/INTELLECT-3", "name": "INTELLECT-3", "provider": "Prime Intellect", "tier": "paid"},
+    {"id": "Qwen/Qwen3-Next-80B-A3B-Thinking", "name": "Qwen3-Next-80B-A3B-Thinking", "provider": "Qwen", "tier": "paid"},
+    {"id": "deepseek-ai/DeepSeek-R1-0528", "name": "DeepSeek-R1-0528", "provider": "DeepSeek", "tier": "paid"},
+    {"id": "deepseek-ai/DeepSeek-R1-0528-fast", "name": "DeepSeek-R1-0528 (Fast)", "provider": "DeepSeek", "tier": "paid"},
+    {"id": "Qwen/Qwen3-235B-A22B-Thinking-2507", "name": "Qwen3-235B-A22B-Thinking-2507", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3-235B-A22B-Instruct-2507", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-30B-A3B-Thinking-2507", "name": "Qwen3-30B-A3B-Thinking-2507", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-30B-A3B-Instruct-2507", "name": "Qwen3-30B-A3B-Instruct-2507", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "name": "Qwen3-Coder-30B-A3B-Instruct", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-32B", "name": "Qwen3-32B", "provider": "Qwen", "tier": "paid"},
+    {"id": "Qwen/Qwen3-32B-fast", "name": "Qwen3-32B (Fast)", "provider": "Qwen", "tier": "paid"},
+    {"id": "nvidia/Llama-3.1-Nemotron-Ultra-253B-v1", "name": "Llama-3.1-Nemotron-Ultra-253B-v1", "provider": "NVIDIA", "tier": "paid"}
 ]
 
 # Combine all models - Local first, then Nebius
