@@ -28,7 +28,7 @@
         .sidebar {
             width: 300px;
             background: #0d0d0d;
-            border-right: 1px solid #c0c0c0;
+            border-right: 1px solid #808080;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
@@ -36,7 +36,7 @@
 
         .sidebar-header {
             padding: 20px;
-            border-bottom: 1px solid #c0c0c0;
+            border-bottom: 1px solid #808080;
         }
 
         .sidebar-header h2 {
@@ -45,7 +45,7 @@
         }
 
         .btn {
-            background: #ffd700;
+            background: #B8860B;
             color: #000000;
             border: none;
             padding: 10px 16px;
@@ -58,22 +58,22 @@
         }
 
         .btn:hover {
-            background: #b8860b;
+            background: #DAA520;
         }
 
         .btn-secondary {
-            background: #c0c0c0;
+            background: #808080;
             color: #000000;
         }
 
         .btn-secondary:hover {
-            background: #d4d4d4;
+            background: #A9A9A9;
         }
 
         /* GitHub Section */
         .github-section {
             padding: 20px;
-            border-bottom: 1px solid #c0c0c0;
+            border-bottom: 1px solid #808080;
         }
 
         .github-section h3 {
@@ -97,11 +97,11 @@
         }
 
         .repo-item:hover, .file-item:hover {
-            background: #c0c0c0;
+            background: #808080;
         }
 
         .repo-item.selected, .file-item.selected {
-            background: #ffd700;
+            background: #B8860B;
             color: #000000;
         }
 
@@ -110,7 +110,7 @@
             padding: 8px;
             background: #000000;
             color: #e0e0e0;
-            border: 1px solid #c0c0c0;
+            border: 1px solid #808080;
             border-radius: 4px;
             margin-top: 10px;
         }
@@ -132,7 +132,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid #c0c0c0;
+            border-right: 1px solid #808080;
         }
 
         .chat-panel:last-child {
@@ -147,7 +147,7 @@
         .chat-header {
             padding: 15px 20px;
             background: #0d0d0d;
-            border-bottom: 1px solid #c0c0c0;
+            border-bottom: 1px solid #808080;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -157,7 +157,7 @@
             padding: 8px 12px;
             background: #000000;
             color: #e0e0e0;
-            border: 1px solid #c0c0c0;
+            border: 1px solid #808080;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
@@ -203,7 +203,7 @@
         }
 
         .message.user .message-content {
-            background: #ffd700;
+            background: #B8860B;
             color: #000000;
         }
 
@@ -215,7 +215,7 @@
         .input-area {
             padding: 20px;
             background: #0d0d0d;
-            border-top: 1px solid #c0c0c0;
+            border-top: 1px solid #808080;
         }
 
         .attached-files {
@@ -226,7 +226,7 @@
         }
 
         .file-tag {
-            background: #c0c0c0;
+            background: #808080;
             padding: 6px 12px;
             border-radius: 16px;
             font-size: 12px;
@@ -251,7 +251,7 @@
             padding: 12px;
             background: #000000;
             color: #e0e0e0;
-            border: 1px solid #c0c0c0;
+            border: 1px solid #808080;
             border-radius: 8px;
             resize: none;
             font-family: inherit;
@@ -261,11 +261,11 @@
 
         textarea:focus {
             outline: none;
-            border-color: #ffd700;
+            border-color: #B8860B;
         }
 
         .send-btn {
-            background: #ffd700;
+            background: #B8860B;
             color: #000000;
             border: none;
             padding: 0 24px;
@@ -280,7 +280,7 @@
         }
 
         .send-btn:disabled {
-            background: #c0c0c0;
+            background: #808080;
             cursor: not-allowed;
         }
 
@@ -302,12 +302,12 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #c0c0c0;
+            background: #808080;
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #d4d4d4;
+            background: #A9A9A9;
         }
     </style>
 </head>
@@ -385,7 +385,12 @@
             try {
                 const response = await fetch('/api/models');
                 const data = await response.json();
-                const models = data.models;
+                const models = data.models || [];
+
+                if (models.length === 0) {
+                    console.error('No models returned from API');
+                    return;
+                }
 
                 const selector1 = document.getElementById('modelSelector1');
                 const selector2 = document.getElementById('modelSelector2');
