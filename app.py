@@ -225,11 +225,13 @@ TOOL TIPS:
                 }
             ]
         
+        # Local models are much slower (CPU inference); use a smaller default
+        default_max_tokens = 512 if use_local else 4000
         payload = {
             'model': actual_model,
             'messages': messages,
             'temperature': data.get('temperature', 0.7),
-            'max_tokens': data.get('max_tokens', 4000)
+            'max_tokens': data.get('max_tokens', default_max_tokens)
         }
 
         # Add tools if available (both local and cloud models can use tools)
