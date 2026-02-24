@@ -219,14 +219,108 @@ If you have a custom domain (like `windowwanker...`):
 4. Update DNS records as Render instructs
 5. Wait for DNS propagation (can take up to 48 hours)
 
-### Using with Cloudflare
+### Using with Cloudflare (windowwanker.com setup)
 
-Since you have Cloudflare:
+Your domain uses three subdomains with two different routing methods:
 
-1. Add Render's URL as a CNAME record in Cloudflare DNS
-2. Point `chat.yourdomain.com` → `llm-dashboard-xxxx.onrender.com`
-3. Enable SSL/TLS in Cloudflare (Full or Full Strict)
-4. Your dashboard will be accessible at your custom domain
+```
+api.windowwanker.com  → CNAME to Render  (site & API)
+www.windowwanker.com  → CNAME to api.windowwanker.com  (redirects to site)
+llm.windowwanker.com  → Cloudflare Tunnel → localhost:11434  (local Ollama)
+```
+
+#### Step A: DNS Records in Cloudflare Dashboard
+
+Go to **Cloudflare Dashboard → windowwanker.com → DNS → Records** and set:
+
+| Type  | Name | Content                               | Proxy status |
+|-------|------|---------------------------------------|--------------|
+| CNAME | api  | `<your-render-slug>.onrender.com`     | Proxied (orange cloud) |
+| CNAME | www  | `api.windowwanker.com`                | Proxied (orange cloud) |
+| CNAME | llm  | `<TUNNEL-ID>.cfargotunnel.com`        | Proxied (orange cloud) |
+
+The `llm` record is created automatically in step B - don't add it manually.
+
+#### Step B: Cloudflare Tunnel for Ollama (llm subdomain)
+
+The tunnel connects `llm.windowwanker.com` → your local Ollama instance.
+
+**Install cloudflared on your local machine:**
+```bash
+# Linux
+wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared-linux-amd64.deb
+
+# Mac
+brew install cloudflared
+
+# Windows
+winget install --id Cloudflare.cloudflared
+```
+
+**Create and configure the tunnel:**
+```bash
+# Authenticate (opens browser)
+cloudflared tunnel login
+
+# Create tunnel (save the ID it prints)
+cloudflared tunnel create my-tunnel
+
+# Add DNS route for llm subdomain
+cloudflared tunnel route dns my-tunnel llm.windowwanker.com
+
+# Create config file
+mkdir -p ~/.cloudflared
+```
+
+**Copy `cloudflared-config.example.yml` from this repo to `~/.cloudflared/config.yml`** and fill in your tunnel ID and user path.
+
+**The critical part** - make sure the ingress points to Ollama's port (11434):
+```yaml
+ingress:
+  - hostname: llm.windowwanker.com
+    service: http://localhost:11434  # Ollama default port
+  - service: http_status:404
+```
+
+**Start the tunnel:**
+```bash
+# Run manually (test it works first)
+cloudflared tunnel run my-tunnel
+
+# Install as system service (runs on boot)
+sudo cloudflared service install
+sudo systemctl start cloudflared
+```
+
+**Verify Ollama is running before starting the tunnel:**
+```bash
+# Check Ollama is up
+curl http://localhost:11434/api/tags
+
+# Should return JSON with your installed models
+```
+
+#### Step C: Common Mistakes
+
+**`llm.windowwanker.com` returns 404:**
+- Tunnel is pointing to the wrong port (not 11434)
+- Check your `~/.cloudflared/config.yml` - the service line must be `http://localhost:11434`
+- Make sure Ollama is actually running: `ollama serve` or `systemctl start ollama`
+
+**`www.windowwanker.com` returns 503 "Connection Refused":**
+- `www` should be a plain CNAME to `api.windowwanker.com`, NOT a tunnel entry
+- If you have `www` in your tunnel ingress config, remove it
+- In Cloudflare DNS, `www` CNAME → `api.windowwanker.com` (proxied)
+
+**Free models not responding in the app:**
+- The Render app calls `https://llm.windowwanker.com/v1/chat/completions`
+- This only works if the tunnel is running AND Ollama is running on port 11434
+- Test the chain: `curl https://llm.windowwanker.com/api/tags` should return your model list
+
+#### Step D: SSL/TLS Setting
+
+In Cloudflare Dashboard → **SSL/TLS → Overview**, set mode to **Full** (not Full Strict, since the tunnel handles its own encryption).
 
 ---
 

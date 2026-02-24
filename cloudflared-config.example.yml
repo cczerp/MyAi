@@ -1,0 +1,37 @@
+# Cloudflare Tunnel Configuration for windowwanker.com
+#
+# SETUP STEPS:
+# 1. Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+# 2. Log in: cloudflared tunnel login
+# 3. Create tunnel: cloudflared tunnel create my-tunnel
+# 4. Copy this file to ~/.cloudflared/config.yml  (Linux/Mac)
+#    or C:\Users\<user>\.cloudflared\config.yml  (Windows)
+# 5. Replace <TUNNEL-ID> with the ID from step 3
+# 6. Run: cloudflared tunnel run my-tunnel
+# 7. Or install as service: cloudflared service install
+
+tunnel: <TUNNEL-ID>
+credentials-file: /home/<user>/.cloudflared/<TUNNEL-ID>.json  # update path for your OS/user
+
+ingress:
+  # llm.windowwanker.com → local Ollama on port 11434
+  - hostname: llm.windowwanker.com
+    service: http://localhost:11434
+
+  # Catch-all (required - must be last)
+  - service: http_status:404
+
+# -------------------------------------------------------------------
+# DNS RECORDS TO SET IN CLOUDFLARE DASHBOARD
+# (DNS > windowwanker.com > Add Record)
+# -------------------------------------------------------------------
+#
+#  Type   Name   Content                              Proxy
+#  -----  -----  -----------------------------------  -----
+#  CNAME  api    <your-render-slug>.onrender.com      ON (orange cloud)
+#  CNAME  www    api.windowwanker.com                 ON (orange cloud)
+#  CNAME  llm    <TUNNEL-ID>.cfargotunnel.com         ON (orange cloud)
+#
+# NOTE: The tunnel record for llm is created automatically when you run
+#       "cloudflared tunnel route dns my-tunnel llm.windowwanker.com"
+# -------------------------------------------------------------------
