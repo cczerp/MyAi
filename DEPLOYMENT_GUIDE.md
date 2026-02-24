@@ -301,7 +301,27 @@ curl http://localhost:11434/api/tags
 # Should return JSON with your installed models
 ```
 
-#### Step C: Common Mistakes
+#### Step C: Fix www subdomain (503 Connection Refused)
+
+`www` returns 503 because Render only knows about `api.windowwanker.com` — it refuses connections with `Host: www.windowwanker.com`.
+
+**Option 1 (recommended): Cloudflare Redirect Rule**
+
+In Cloudflare Dashboard → **Rules → Redirect Rules → Create rule**:
+- When: `Hostname equals www.windowwanker.com`
+- Then: Static redirect → `https://api.windowwanker.com` → 301
+
+This redirects all `www` traffic to `api` without touching Render.
+
+**Option 2: Add www as a second custom domain in Render**
+
+In Render → your service → **Settings → Custom Domains → Add Custom Domain**:
+- Add `www.windowwanker.com`
+- Render will tell you to add a CNAME (already done in step A)
+
+---
+
+#### Step D: Common Mistakes
 
 **`llm.windowwanker.com` returns 404:**
 - Tunnel is pointing to the wrong port (not 11434)
