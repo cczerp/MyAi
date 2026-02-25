@@ -21,15 +21,16 @@ GITHUB_NAME = os.environ.get('GITHUB_NAME', 'Your Name')
 github_client = Github(GITHUB_TOKEN) if GITHUB_TOKEN else None
 
 # Local Ollama models (FREE)
+# supports_tools=True marks models with reliable OpenAI-compatible function calling
 LOCAL_MODELS = [
-    {"id": "local/llama3.1:8b", "name": "Llama 3.1 8B", "provider": "Local", "ollama_id": "llama3.1:8b", "tier": "free"},
-    {"id": "local/mistral:7b-instruct", "name": "Mistral 7B Instruct", "provider": "Local", "ollama_id": "mistral:7b-instruct", "tier": "free"},
-    {"id": "local/qwen2.5:latest", "name": "Qwen 2.5", "provider": "Local", "ollama_id": "qwen2.5:latest", "tier": "free"},
-    {"id": "local/qwen2.5-coder:7b", "name": "Qwen 2.5 Coder 7B", "provider": "Local", "ollama_id": "qwen2.5-coder:7b", "tier": "free"},
-    {"id": "local/deepseek-coder:6.7b", "name": "DeepSeek Coder 6.7B", "provider": "Local", "ollama_id": "deepseek-coder:6.7b", "tier": "free"},
-    {"id": "local/nous-hermes2:latest", "name": "Nous Hermes 2", "provider": "Local", "ollama_id": "nous-hermes2:latest", "tier": "free"},
-    {"id": "local/gemma-3-12b-abliterated", "name": "Gemma 3 12B Abliterated", "provider": "Local", "ollama_id": "hf.co/mlabonne/gemma-3-12b-it-abliterated-GGUF:Q4_K_M", "tier": "free"},
-    {"id": "local/bakllava:latest", "name": "BakLLaVA (Vision)", "provider": "Local", "ollama_id": "bakllava:latest", "tier": "free"},
+    {"id": "local/llama3.1:8b", "name": "Llama 3.1 8B", "provider": "Local", "ollama_id": "llama3.1:8b", "tier": "free", "supports_tools": True},
+    {"id": "local/mistral:7b-instruct", "name": "Mistral 7B Instruct", "provider": "Local", "ollama_id": "mistral:7b-instruct", "tier": "free", "supports_tools": False},
+    {"id": "local/qwen2.5:latest", "name": "Qwen 2.5", "provider": "Local", "ollama_id": "qwen2.5:latest", "tier": "free", "supports_tools": True},
+    {"id": "local/qwen2.5-coder:7b", "name": "Qwen 2.5 Coder 7B", "provider": "Local", "ollama_id": "qwen2.5-coder:7b", "tier": "free", "supports_tools": True},
+    {"id": "local/deepseek-coder:6.7b", "name": "DeepSeek Coder 6.7B", "provider": "Local", "ollama_id": "deepseek-coder:6.7b", "tier": "free", "supports_tools": False},
+    {"id": "local/nous-hermes2:latest", "name": "Nous Hermes 2", "provider": "Local", "ollama_id": "nous-hermes2:latest", "tier": "free", "supports_tools": False},
+    {"id": "local/gemma-3-12b-abliterated", "name": "Gemma 3 12B Abliterated", "provider": "Local", "ollama_id": "hf.co/mlabonne/gemma-3-12b-it-abliterated-GGUF:Q4_K_M", "tier": "free", "supports_tools": False},
+    {"id": "local/bakllava:latest", "name": "BakLLaVA (Vision)", "provider": "Local", "ollama_id": "bakllava:latest", "tier": "free", "supports_tools": False},
 ]
 
 # Available models (Nebius cloud - PAID per token) with correct IDs from their API docs
@@ -74,6 +75,13 @@ def get_ollama_model_id(model_id):
             return model.get('ollama_id', model_id.replace('local/', ''))
     return model_id.replace('local/', '')
 
+def local_model_supports_tools(model_id):
+    """Check if a local model has reliable function calling support"""
+    for model in LOCAL_MODELS:
+        if model['id'] == model_id:
+            return model.get('supports_tools', False)
+    return False
+
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
@@ -114,7 +122,9 @@ def chat():
 
         # Add system prompt for efficient tool usage when repo is connected
         if repo_context:
-            system_prompt = """You are a helpful coding assistant with access to a GitHub repository. You can read and edit files.
+            system_prompt = """You are a helpful coding assistant with access to a GitHub repository. You can read AND edit files directly.
+
+YOU HAVE FULL READ AND WRITE ACCESS. Use edit_file or write_file to make changes.
 
 EFFICIENCY GUIDELINES - Follow these to avoid running out of steps:
 1. READ files only ONCE. Don't re-read files you've already seen.
@@ -123,6 +133,13 @@ EFFICIENCY GUIDELINES - Follow these to avoid running out of steps:
 4. For color scheme changes: identify all unique colors, then use edit_file with replace_all=true for each color.
 5. Combine related changes - don't make separate calls for the same type of change.
 6. You have a maximum of 25 tool calls, so be efficient!
+
+CRITICAL - edit_file EXACT MATCH RULES:
+- old_text must be copied EXACTLY from the file — same whitespace, indentation, and line endings.
+- After reading a file, copy-paste the exact text you want to replace as old_text.
+- Do NOT paraphrase, reformat, or clean up old_text.
+- If edit_file says "Could not find the specified text", re-read the file and copy old_text more carefully.
+- For multi-line old_text, include enough surrounding context (3-5 lines) to make it unique.
 
 TOOL TIPS:
 - edit_file: Best for targeted changes. Use old_text/new_text with replace_all=true for global find-replace.
@@ -234,11 +251,15 @@ TOOL TIPS:
             'max_tokens': data.get('max_tokens', default_max_tokens)
         }
 
-        # Only add tools for cloud models — most local models don't support
-        # function calling reliably and will stall or produce malformed responses
-        if tools and not use_local:
+        # Add tools for cloud models, and for local models that have reliable
+        # function calling support (llama3.1, qwen2.5, qwen2.5-coder).
+        # Other local models stall or produce malformed tool call responses.
+        if tools and (not use_local or local_model_supports_tools(model)):
             payload['tools'] = tools
             payload['tool_choice'] = 'auto'
+            # Local models need more tokens to fit tool call JSON
+            if use_local and 'max_tokens' not in data:
+                payload['max_tokens'] = 2048
 
         # Keep timeout under Render's ~60s proxy limit so we return a clean
         # error instead of a 502. Cloud models get a longer budget.
