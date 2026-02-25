@@ -5,21 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Dashboard</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Open+Sans:wght@400;600&display=swap');
-
-        :root {
-            --bg-dark: #1A1A1F;
-            --text-off-white: #F2EFEA;
-            --text-muted: #A8A5A0;
-            --purple-main: #3B1E57;
-            --purple-soft: #5D3A7A;
-            --gold-main: #C49A3A;
-            --gold-soft: #D6B46A;
-            --orange-accent: #E66A1E;
-            --border-dark: #333338;
-            --section-bg: #25252B;
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -27,17 +12,11 @@
         }
 
         body {
-            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-off-white);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000000;
+            color: #e0e0e0;
             height: 100vh;
             overflow: hidden;
-            line-height: 1.6;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Playfair Display', serif;
-            font-weight: 800;
         }
 
         .container {
@@ -48,8 +27,8 @@
         /* Sidebar */
         .sidebar {
             width: 300px;
-            background: var(--section-bg);
-            border-right: 1px solid var(--gold-main);
+            background: #0d0d0d;
+            border-right: 1px solid #B8860B;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
@@ -57,21 +36,17 @@
 
         .sidebar-header {
             padding: 20px;
-            border-bottom: 1px solid var(--gold-main);
-            background: linear-gradient(135deg, var(--purple-main) 0%, var(--section-bg) 100%);
+            border-bottom: 1px solid #B8860B;
         }
 
         .sidebar-header h2 {
-            font-size: 20px;
+            font-size: 18px;
             margin-bottom: 15px;
-            color: var(--gold-main);
-            text-shadow: 0 0 10px rgba(196, 154, 58, 0.4);
-            letter-spacing: 0.5px;
         }
 
         .btn {
-            background: var(--gold-main);
-            color: var(--purple-main);
+            background: #B8860B;
+            color: #000000;
             border: none;
             padding: 10px 16px;
             border-radius: 6px;
@@ -80,52 +55,31 @@
             width: 100%;
             margin-bottom: 10px;
             font-weight: 600;
-            font-family: 'Open Sans', sans-serif;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
 
         .btn:hover {
-            background: var(--gold-soft);
-            box-shadow: 0 0 15px rgba(196, 154, 58, 0.6);
-            transform: translateY(-2px);
+            background: #DAA520;
         }
 
         .btn-secondary {
-            background: transparent;
-            color: var(--gold-main);
-            border: 2px solid var(--gold-main);
+            background: #B8860B;
+            color: #000000;
         }
 
         .btn-secondary:hover {
-            background: var(--orange-accent);
-            color: var(--text-off-white);
-            border-color: var(--orange-accent);
-            box-shadow: 0 0 15px rgba(230, 106, 30, 0.5);
-            transform: translateY(-2px);
-        }
-
-        /* Tentacle divider */
-        .tentacle-divider {
-            height: 24px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 20"><path d="M0 10 Q 25 4, 50 10 T 100 10 T 150 10 T 200 10" stroke="%23C49A3A" fill="none" stroke-width="1.5" opacity="0.6"/></svg>') center/contain no-repeat;
-            margin: 4px 0;
+            background: #A9A9A9;
         }
 
         /* GitHub Section */
         .github-section {
             padding: 20px;
-            border-bottom: 1px solid var(--border-dark);
+            border-bottom: 1px solid #B8860B;
         }
 
         .github-section h3 {
-            font-size: 12px;
+            font-size: 14px;
             margin-bottom: 10px;
-            color: var(--text-muted);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            font-family: 'Open Sans', sans-serif;
-            font-weight: 600;
+            color: #a0a0a0;
         }
 
         .repo-list, .file-list {
@@ -140,31 +94,25 @@
             border-radius: 4px;
             font-size: 13px;
             margin-bottom: 4px;
-            transition: background 0.2s ease, color 0.2s ease;
-            border: 1px solid transparent;
         }
 
         .repo-item:hover, .file-item:hover {
-            background: var(--purple-soft);
-            border-color: var(--gold-main);
-            color: var(--gold-soft);
+            background: #B8860B;
         }
 
         .repo-item.selected, .file-item.selected {
-            background: var(--purple-main);
-            color: var(--gold-main);
-            border-color: var(--gold-main);
+            background: #B8860B;
+            color: #000000;
         }
 
         .branch-selector {
             width: 100%;
             padding: 8px;
-            background: var(--bg-dark);
-            color: var(--text-off-white);
-            border: 1px solid var(--gold-main);
+            background: #000000;
+            color: #e0e0e0;
+            border: 1px solid #B8860B;
             border-radius: 4px;
             margin-top: 10px;
-            font-family: 'Open Sans', sans-serif;
         }
 
         /* Main Content */
@@ -184,7 +132,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid var(--border-dark);
+            border-right: 1px solid #B8860B;
         }
 
         .chat-panel:last-child {
@@ -198,8 +146,8 @@
         /* Chat Header */
         .chat-header {
             padding: 15px 20px;
-            background: var(--section-bg);
-            border-bottom: 1px solid var(--gold-main);
+            background: #0d0d0d;
+            border-bottom: 1px solid #B8860B;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -207,36 +155,23 @@
 
         .model-selector {
             padding: 8px 12px;
-            background: var(--bg-dark);
-            color: var(--text-off-white);
-            border: 1px solid var(--gold-main);
+            background: #000000;
+            color: #e0e0e0;
+            border: 1px solid #B8860B;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
             min-width: 250px;
-            font-family: 'Open Sans', sans-serif;
-        }
-
-        .model-selector:focus {
-            outline: none;
-            box-shadow: 0 0 8px rgba(196, 154, 58, 0.4);
         }
 
         .close-chat {
-            background: var(--orange-accent);
-            color: var(--text-off-white);
+            background: #ff4444;
+            color: white;
             border: none;
             padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
-            font-family: 'Open Sans', sans-serif;
-            transition: all 0.2s ease;
-        }
-
-        .close-chat:hover {
-            box-shadow: 0 0 10px rgba(230, 106, 30, 0.5);
-            transform: translateY(-1px);
         }
 
         /* Messages */
@@ -244,7 +179,6 @@
             flex: 1;
             overflow-y: auto;
             padding: 20px;
-            background: var(--bg-dark);
         }
 
         .message {
@@ -256,16 +190,12 @@
         .message-header {
             font-weight: 600;
             margin-bottom: 8px;
-            font-size: 12px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            font-family: 'Open Sans', sans-serif;
+            font-size: 13px;
+            color: #a0a0a0;
         }
 
         .message-content {
-            background: var(--section-bg);
-            border: 1px solid var(--border-dark);
+            background: #0d0d0d;
             padding: 12px 16px;
             border-radius: 8px;
             line-height: 1.6;
@@ -273,21 +203,19 @@
         }
 
         .message.user .message-content {
-            background: var(--purple-main);
-            color: var(--gold-soft);
-            border-color: var(--gold-main);
+            background: #B8860B;
+            color: #000000;
         }
 
         .message.assistant .message-content {
-            background: var(--section-bg);
-            border-color: var(--border-dark);
+            background: #0d0d0d;
         }
 
         /* Input Area */
         .input-area {
             padding: 20px;
-            background: var(--section-bg);
-            border-top: 1px solid var(--gold-main);
+            background: #0d0d0d;
+            border-top: 1px solid #B8860B;
         }
 
         .attached-files {
@@ -298,9 +226,7 @@
         }
 
         .file-tag {
-            background: var(--purple-soft);
-            border: 1px solid var(--gold-main);
-            color: var(--gold-soft);
+            background: #B8860B;
             padding: 6px 12px;
             border-radius: 16px;
             font-size: 12px;
@@ -311,7 +237,7 @@
 
         .file-tag .remove {
             cursor: pointer;
-            color: var(--orange-accent);
+            color: #ff4444;
             font-weight: bold;
         }
 
@@ -323,57 +249,46 @@
         textarea {
             flex: 1;
             padding: 12px;
-            background: var(--bg-dark);
-            color: var(--text-off-white);
-            border: 1px solid var(--border-dark);
+            background: #000000;
+            color: #e0e0e0;
+            border: 1px solid #B8860B;
             border-radius: 8px;
             resize: none;
-            font-family: 'Open Sans', sans-serif;
+            font-family: inherit;
             font-size: 14px;
             min-height: 60px;
-            transition: border-color 0.2s ease;
         }
 
         textarea:focus {
             outline: none;
-            border-color: var(--gold-main);
-            box-shadow: 0 0 8px rgba(196, 154, 58, 0.3);
+            border-color: #B8860B;
         }
 
         .send-btn {
-            background: var(--gold-main);
-            color: var(--purple-main);
+            background: #B8860B;
+            color: #000000;
             border: none;
             padding: 0 24px;
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            font-family: 'Open Sans', sans-serif;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
 
         .send-btn:hover {
-            background: var(--gold-soft);
-            box-shadow: 0 0 15px rgba(196, 154, 58, 0.6);
-            transform: translateY(-2px);
+            background: #b8860b;
         }
 
         .send-btn:disabled {
-            background: var(--border-dark);
-            color: var(--text-muted);
+            background: #B8860B;
             cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
 
         /* Loading */
         .loading {
             text-align: center;
             padding: 20px;
-            color: var(--gold-soft);
-            font-style: italic;
+            color: #a0a0a0;
         }
 
         /* Scrollbar */
@@ -383,16 +298,16 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: var(--bg-dark);
+            background: #000000;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--gold-main);
+            background: #B8860B;
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: var(--gold-soft);
+            background: #A9A9A9;
         }
     </style>
 </head>
@@ -405,9 +320,6 @@
                 <button class="btn" onclick="toggleSecondChat()">Open 2nd Chat</button>
                 <button class="btn btn-secondary" onclick="shareContext()">Share Context →</button>
             </div>
-
-            <!-- Tentacle divider -->
-            <div class="tentacle-divider"></div>
 
             <!-- GitHub Integration -->
             <div class="github-section">
