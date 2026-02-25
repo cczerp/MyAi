@@ -234,13 +234,15 @@ TOOL TIPS:
             'max_tokens': data.get('max_tokens', default_max_tokens)
         }
 
-        # Add tools if available (both local and cloud models can use tools)
-        if tools:
+        # Only add tools for cloud models — most local models don't support
+        # function calling reliably and will stall or produce malformed responses
+        if tools and not use_local:
             payload['tools'] = tools
             payload['tool_choice'] = 'auto'
 
-        # Use longer timeout for local models (they can be slower)
-        timeout = 300 if use_local else 120
+        # Keep timeout under Render's ~60s proxy limit so we return a clean
+        # error instead of a 502. Cloud models get a longer budget.
+        timeout = 55 if use_local else 120
         response = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
         response.raise_for_status()
         
@@ -261,6 +263,8 @@ TOOL TIPS:
         error_msg = f"HTTP {e.response.status_code}: {e.response.text}"
         return jsonify({"error": error_msg}), 500
     except requests.exceptions.Timeout:
+        if use_local:
+            return jsonify({"error": "Local model timed out (>55s). Try a smaller model or a shorter prompt."}), 504
         return jsonify({"error": "Request timed out"}), 504
     except Exception as e:
         return jsonify({"error": str(e)}), 500
