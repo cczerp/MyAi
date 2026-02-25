@@ -608,7 +608,9 @@
                 // Update loading message with iteration count
                 const loadingDiv = document.getElementById(`loading${chatId}`);
                 if (loadingDiv) {
-                    loadingDiv.textContent = `Processing... (step ${iterations}/${maxIterations})`;
+                    const isLocal = model.startsWith('local/');
+                    const localNote = isLocal ? ' — local models can take 30–60s' : '';
+                    loadingDiv.textContent = `Processing... (step ${iterations}/${maxIterations})${localNote}`;
                 }
 
                 const repo = activeRepo[chatId];
